@@ -18,6 +18,7 @@ services:
 
 networks:
   shared:
+    external: true
     name: bots_shared
 
 volumes:

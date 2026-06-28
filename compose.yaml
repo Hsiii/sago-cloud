@@ -1,0 +1,25 @@
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    cpus: 0.25
+    mem_limit: 128m
+    env_file:
+      - .env.production
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - shared
+
+networks:
+  shared:
+    name: bots_shared
+
+volumes:
+  caddy-data:
+  caddy-config:

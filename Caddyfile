@@ -1,0 +1,21 @@
+{$DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Referrer-Policy "no-referrer"
+		X-Content-Type-Options "nosniff"
+	}
+
+	redir /wm31 /wm31/ 308
+	redir /morning /morning/ 308
+
+	handle /morning/* {
+		reverse_proxy morning-dashboard:3100
+	}
+
+	handle_path /wm31/* {
+		reverse_proxy wm31bot:3000
+	}
+
+	reverse_proxy wm31bot:3000
+}

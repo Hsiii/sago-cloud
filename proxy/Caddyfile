@@ -2,12 +2,17 @@
 	encode zstd gzip
 
 	header {
-		Referrer-Policy "no-referrer"
-		X-Content-Type-Options "nosniff"
+		Referrer-Policy no-referrer
+		X-Content-Type-Options nosniff
 	}
 
 	redir /wm31 /wm31/ 308
 	redir /morning /morning/ 308
+	redir /recipe /recipe/ 308
+
+	handle_path /recipe/* {
+		reverse_proxy recipe-site:3101
+	}
 
 	handle /morning/* {
 		reverse_proxy morning-dashboard:3100
@@ -17,5 +22,7 @@
 		reverse_proxy wm31bot:3000
 	}
 
-	reverse_proxy wm31bot:3000
+	handle {
+		reverse_proxy wm31bot:3000
+	}
 }

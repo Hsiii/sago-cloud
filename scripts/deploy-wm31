@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
+
+ensure_docker_network
+pull_repo "$APPS_ROOT/wm31"
+compose_up wm31bot

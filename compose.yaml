@@ -1,3 +1,5 @@
+name: oracle
+
 services:
   caddy:
     image: caddy:2-alpine
@@ -5,14 +7,58 @@ services:
     cpus: 0.25
     mem_limit: 128m
     env_file:
-      - .env.production
+      - ../secrets/proxy.env
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./proxy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
       - caddy-config:/config
+    networks:
+      - shared
+
+  wm31bot:
+    build:
+      context: ../apps/wm31
+    restart: unless-stopped
+    cpus: 0.25
+    mem_limit: 256m
+    env_file:
+      - ../secrets/wm31.env
+    environment:
+      GAMER_FORUM_STATE_FILE: /app/state/gamer-forum-state.json
+    volumes:
+      - wm31bot-state:/app/state
+    networks:
+      - shared
+
+  morning-dashboard:
+    build:
+      context: ../apps/morning
+    restart: unless-stopped
+    cpus: 0.5
+    mem_limit: 768m
+    shm_size: 512mb
+    env_file:
+      - ../secrets/morning.env
+    environment:
+      MORNING_CAPTURE_ENABLED: "false"
+    volumes:
+      - morning-dashboard-state:/app/state
+    networks:
+      - shared
+
+  recipe-site:
+    build:
+      context: ../apps/recipe
+    restart: unless-stopped
+    cpus: 0.25
+    mem_limit: 256m
+    env_file:
+      - ../secrets/recipe.env
+    volumes:
+      - recipe-site-uploads:/app/uploads
     networks:
       - shared
 
@@ -23,4 +69,12 @@ networks:
 
 volumes:
   caddy-data:
+    name: proxy_caddy-data
   caddy-config:
+    name: proxy_caddy-config
+  wm31bot-state:
+    name: wm31bot_wm31bot-state
+  morning-dashboard-state:
+    name: morning_morning-dashboard-state
+  recipe-site-uploads:
+    name: recipe_recipe-site-uploads

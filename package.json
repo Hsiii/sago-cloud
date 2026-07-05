@@ -1,0 +1,14 @@
+{
+  "name": "oracle",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "bun scripts/deploy.mjs all",
+    "deploy:all": "bun scripts/deploy.mjs all",
+    "deploy:proxy": "bun scripts/deploy.mjs proxy",
+    "deploy:wm31": "bun scripts/deploy.mjs wm31",
+    "deploy:morning": "bun scripts/deploy.mjs morning",
+    "deploy:recipe": "bun scripts/deploy.mjs recipe",
+    "status": "ssh oracle /home/ubuntu/bots/oracle/scripts/status"
+  }
+}

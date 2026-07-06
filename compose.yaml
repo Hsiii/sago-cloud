@@ -13,6 +13,7 @@ services:
       - "443:443"
     volumes:
       - ./proxy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - /srv/videos:/srv/videos:ro
       - caddy-data:/data
       - caddy-config:/config
     networks:

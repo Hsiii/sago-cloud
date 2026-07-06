@@ -9,6 +9,12 @@
 	redir /wm31 /wm31/ 308
 	redir /morning /morning/ 308
 	redir /recipe /recipe/ 308
+	redir /videos /videos/ 308
+
+	handle_path /videos/* {
+		root * /srv/videos
+		file_server
+	}
 
 	handle_path /recipe/* {
 		reverse_proxy recipe-site:3101

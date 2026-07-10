@@ -38,7 +38,7 @@ services:
     build:
       context: ../apps/morning
       args:
-        INSTALL_PLAYWRIGHT_BROWSERS: "false"
+        INSTALL_PLAYWRIGHT_BROWSERS: "true"
     restart: unless-stopped
     cpus: 0.5
     mem_limit: 768m

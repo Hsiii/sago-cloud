@@ -49,6 +49,24 @@ recipe uploads.
 - `/recipe/*` routes to `recipe-site:3101`
 - PostgreSQL is reachable only on the shared Docker network at `postgres:5432`.
 
+## Scheduled Jobs
+
+`scripts/install-supercell-reward-cron` installs an idempotent cron entry that
+runs `scripts/claim-supercell-reward` every day at `09:00 UTC`, which is
+`17:00 GMT+8`.
+
+The claim script runs the MorningDashboard one-shot Playwright command inside
+the `morning-dashboard` container with Supercell reward clicking enabled for
+that run. It reuses the saved Playwright auth state from the mounted dashboard
+state volume and logs cron output to `/home/ubuntu/bots/logs/supercell-reward.log`.
+
+Run these from the VM:
+
+```bash
+scripts/deploy-morning
+scripts/install-supercell-reward-cron
+```
+
 ## Secrets
 
 Create production env files from the public examples:

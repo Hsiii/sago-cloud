@@ -10,6 +10,8 @@
     "deploy:morning": "bun scripts/deploy.mjs morning",
     "deploy:recipe": "bun scripts/deploy.mjs recipe",
     "deploy:postgres": "bun scripts/deploy.mjs postgres",
+    "install:supercell-cron": "ssh oracle /home/ubuntu/bots/oracle/scripts/install-supercell-reward-cron",
+    "claim:supercell": "ssh oracle /home/ubuntu/bots/oracle/scripts/claim-supercell-reward",
     "status": "ssh oracle /home/ubuntu/bots/oracle/scripts/status"
   }
 }

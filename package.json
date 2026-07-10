@@ -9,6 +9,7 @@
     "deploy:wm31": "bun scripts/deploy.mjs wm31",
     "deploy:morning": "bun scripts/deploy.mjs morning",
     "deploy:recipe": "bun scripts/deploy.mjs recipe",
+    "deploy:postgres": "bun scripts/deploy.mjs postgres",
     "status": "ssh oracle /home/ubuntu/bots/oracle/scripts/status"
   }
 }

@@ -12,6 +12,7 @@ VOLUME_NAMES=(
   wm31bot_wm31bot-state
   morning_morning-dashboard-state
   recipe_recipe-site-uploads
+  oracle_postgres-data
 )
 
 if docker info >/dev/null 2>&1; then

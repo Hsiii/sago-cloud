@@ -1,7 +1,14 @@
 import { execFileSync, spawnSync } from "node:child_process";
 
 const service = process.argv[2] ?? "all";
-const allowedServices = new Set(["all", "proxy", "wm31", "morning", "recipe"]);
+const allowedServices = new Set([
+  "all",
+  "proxy",
+  "wm31",
+  "morning",
+  "recipe",
+  "postgres",
+]);
 const remoteHost = process.env.ORACLE_HOST ?? "oracle";
 const remoteDeployRoot =
   process.env.ORACLE_DEPLOY_ROOT ?? "/home/ubuntu/bots/oracle";

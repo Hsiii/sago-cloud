@@ -65,6 +65,27 @@ services:
     networks:
       - shared
 
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    cpus: 0.5
+    mem_limit: 512m
+    shm_size: 128mb
+    env_file:
+      - ../secrets/postgres.env
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - shared
+
 networks:
   shared:
     external: true
@@ -86,3 +107,6 @@ volumes:
   recipe-site-uploads:
     external: true
     name: recipe_recipe-site-uploads
+  postgres-data:
+    external: true
+    name: oracle_postgres-data

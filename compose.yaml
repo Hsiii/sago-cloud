@@ -66,13 +66,27 @@ services:
       - shared
 
   homepage:
-    build:
-      context: ../apps/homepage
+    image: node:24-alpine
+    command: ["node", "server.js"]
+    working_dir: /app
     restart: unless-stopped
     cpus: 0.5
     mem_limit: 512m
     env_file:
       - ../secrets/homepage.env
+    environment:
+      HOSTNAME: 0.0.0.0
+      NEXT_TELEMETRY_DISABLED: "1"
+      NODE_ENV: production
+      PORT: "3102"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3102/api/health >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    volumes:
+      - /home/ubuntu/bots/artifacts/homepage:/app:ro
     networks:
       - shared
 

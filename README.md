@@ -19,7 +19,8 @@ git under `/home/ubuntu/bots/secrets`.
     wm31/              # WM31Bot app repo
     morning/           # Brawl Stars Store Claimer app repo
     recipe/            # Recipes app repo
-    homepage/          # Browser homepage app repo
+  artifacts/
+    homepage/          # Uploaded Next.js standalone artifact
   secrets/
     proxy.env
     wm31.env
@@ -37,7 +38,7 @@ git under `/home/ubuntu/bots/secrets`.
 - `wm31bot`, the Discord bot API and gateway.
 - `brawl-stars-claimer`, the private Brawl Stars Store reward claimer.
 - `recipe-site`, the recipe archive.
-- `homepage`, the browser homepage.
+- `homepage`, the browser homepage uploaded as a Next.js standalone artifact.
 - `postgres`, a private PostgreSQL server for app containers.
 
 All services attach to the external `bots_shared` Docker network. Named
@@ -108,9 +109,12 @@ scripts/deploy-all
 scripts/status
 ```
 
-Each app-specific deploy script pulls that app checkout, rebuilds the matching
-service, and leaves the other services alone. `deploy-all` pulls this repo and
-all app repos before rebuilding the full stack.
+Each source-based app deploy script pulls that app checkout, rebuilds the
+matching service, and leaves the other services alone. Homepage is built locally
+from its own repo with `bun run deploy:oracle`, uploaded to
+`/home/ubuntu/bots/artifacts/homepage`, then restarted by
+`scripts/deploy-homepage`. `deploy-all` pulls this repo and source-based app
+repos before rebuilding the full stack.
 
 ## Manual Deploy
 

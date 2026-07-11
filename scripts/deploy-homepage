@@ -4,5 +4,10 @@ set -euo pipefail
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
 
 ensure_docker_network
-pull_repo "$APPS_ROOT/homepage"
+
+if [ ! -f /home/ubuntu/bots/artifacts/homepage/server.js ]; then
+  printf 'Expected homepage artifact at /home/ubuntu/bots/artifacts/homepage/server.js\n' >&2
+  exit 1
+fi
+
 compose_up homepage

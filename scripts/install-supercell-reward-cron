@@ -1,30 +1,4 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
-
-cron_schedule="${SUPERCELL_REWARD_CRON:-0 9 * * *}"
-cron_marker="# oracle-supercell-reward"
-log_dir="${SUPERCELL_REWARD_LOG_DIR:-"$ORACLE_ROOT/../logs"}"
-log_file="$log_dir/supercell-reward.log"
-claim_script="$ORACLE_ROOT/scripts/claim-supercell-reward"
-cron_command="/usr/bin/flock -n /tmp/oracle-supercell-reward.lock $claim_script >> $log_file 2>&1"
-current_cron="$(mktemp)"
-next_cron="$(mktemp)"
-
-cleanup() {
-  rm -f "$current_cron" "$next_cron"
-}
-trap cleanup EXIT
-
-mkdir -p "$log_dir"
-
-crontab -l 2>/dev/null | grep -vF "$cron_marker" > "$current_cron" || true
-{
-  cat "$current_cron"
-  printf '%s %s %s\n' "$cron_schedule" "$cron_command" "$cron_marker"
-} > "$next_cron"
-
-crontab "$next_cron"
-
-printf 'Installed Supercell reward cron: %s %s\n' "$cron_schedule" "$cron_command"
+"$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/install-brawlstars-claim-cron"

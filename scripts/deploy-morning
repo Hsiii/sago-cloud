@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
-
-ensure_docker_network
-pull_repo "$APPS_ROOT/morning"
-compose_up morning-dashboard
+"$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/deploy-brawlstars"

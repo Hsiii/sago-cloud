@@ -1,18 +1,4 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
-
-ensure_docker_network
-
-container_id="$("${DOCKER[@]}" compose -f "$COMPOSE_FILE" ps -q morning-dashboard)"
-container_running="$("${DOCKER[@]}" inspect -f '{{.State.Running}}' "$container_id" 2>/dev/null || true)"
-
-if [ "$container_running" != "true" ]; then
-  "$ORACLE_ROOT/scripts/deploy-morning"
-fi
-
-"${DOCKER[@]}" compose -f "$COMPOSE_FILE" exec -T \
-  -e MORNING_SUPERCELL_REWARD_ENABLED=true \
-  morning-dashboard \
-  bun src/server.ts --claim-supercell-reward
+"$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/claim-brawlstars-reward"

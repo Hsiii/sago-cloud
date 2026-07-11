@@ -17,13 +17,13 @@ git under `/home/ubuntu/bots/secrets`.
   oracle/              # this repo
   apps/
     wm31/              # WM31Bot app repo
-    morning/           # MorningDashboard app repo
+    morning/           # Brawl Stars Store Claimer app repo
     recipe/            # Recipes app repo
     homepage/          # Browser homepage app repo
   secrets/
     proxy.env
     wm31.env
-    morning.env
+    brawl-stars-claimer.env
     recipe.env
     homepage.env
     postgres.env
@@ -35,40 +35,41 @@ git under `/home/ubuntu/bots/secrets`.
 
 - `caddy`, the public HTTPS router.
 - `wm31bot`, the Discord bot API and gateway.
-- `morning-dashboard`, the private morning dashboard.
+- `brawl-stars-claimer`, the private Brawl Stars Store reward claimer.
 - `recipe-site`, the recipe archive.
 - `homepage`, the browser homepage.
 - `postgres`, a private PostgreSQL server for app containers.
 
 All services attach to the external `bots_shared` Docker network. Named
 volumes intentionally keep the existing production volume names so migrating to
-this repo does not discard Caddy certificates, bot state, dashboard state, or
+this repo does not discard Caddy certificates, bot state, claimer state, or
 recipe uploads.
 
 ## Services
 
 - `/` and `/wm31/*` route to `wm31bot:3000`
-- `/morning/*` routes to `morning-dashboard:3100`
+- `/brawlstars/*` routes to `brawl-stars-claimer:3100`
+- `/morning/*` redirects to `/brawlstars/`
 - `/recipe/*` routes to `recipe-site:3101`
 - `homepage.hsichen.dev` routes to `homepage:3102`
 - PostgreSQL is reachable only on the shared Docker network at `postgres:5432`.
 
 ## Scheduled Jobs
 
-`scripts/install-supercell-reward-cron` installs an idempotent cron entry that
-runs `scripts/claim-supercell-reward` every day at `09:00 UTC`, which is
+`scripts/install-brawlstars-claim-cron` installs an idempotent cron entry that
+runs `scripts/claim-brawlstars-reward` every day at `09:00 UTC`, which is
 `17:00 GMT+8`.
 
-The claim script runs the MorningDashboard one-shot Playwright command inside
-the `morning-dashboard` container with Supercell reward clicking enabled for
-that run. It reuses the saved Playwright auth state from the mounted dashboard
-state volume and logs cron output to `/home/ubuntu/bots/logs/supercell-reward.log`.
+The claim script runs the one-shot Playwright command inside the
+`brawl-stars-claimer` container. It reuses the saved Playwright auth state from
+the mounted state volume and logs cron output to
+`/home/ubuntu/bots/logs/brawlstars-claim.log`.
 
 Run these from the VM:
 
 ```bash
-scripts/deploy-morning
-scripts/install-supercell-reward-cron
+scripts/deploy-brawlstars
+scripts/install-brawlstars-claim-cron
 ```
 
 ## Secrets
@@ -79,7 +80,7 @@ Create production env files from the public examples:
 mkdir -p /home/ubuntu/bots/secrets
 cp env/proxy.env.example /home/ubuntu/bots/secrets/proxy.env
 cp env/wm31.env.example /home/ubuntu/bots/secrets/wm31.env
-cp env/morning.env.example /home/ubuntu/bots/secrets/morning.env
+cp env/brawl-stars-claimer.env.example /home/ubuntu/bots/secrets/brawl-stars-claimer.env
 cp env/recipe.env.example /home/ubuntu/bots/secrets/recipe.env
 cp env/homepage.env.example /home/ubuntu/bots/secrets/homepage.env
 cp env/postgres.env.example /home/ubuntu/bots/secrets/postgres.env
@@ -99,7 +100,7 @@ Run these from the VM:
 ```bash
 scripts/deploy-proxy
 scripts/deploy-wm31
-scripts/deploy-morning
+scripts/deploy-brawlstars
 scripts/deploy-recipe
 scripts/deploy-homepage
 scripts/deploy-postgres

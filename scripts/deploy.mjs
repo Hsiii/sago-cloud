@@ -5,6 +5,7 @@ const allowedServices = new Set([
   "all",
   "proxy",
   "wm31",
+  "brawlstars",
   "morning",
   "recipe",
   "homepage",

@@ -18,7 +18,8 @@
 	}
 
 	redir /wm31 /wm31/ 308
-	redir /morning /morning/ 308
+	redir /brawlstars /brawlstars/ 308
+	redir /morning /brawlstars/ 308
 	redir /recipe /recipe/ 308
 	redir /videos /videos/ 308
 
@@ -32,7 +33,11 @@
 	}
 
 	handle /morning/* {
-		reverse_proxy morning-dashboard:3100
+		redir /brawlstars/ 308
+	}
+
+	handle /brawlstars/* {
+		reverse_proxy brawl-stars-claimer:3100
 	}
 
 	handle_path /wm31/* {

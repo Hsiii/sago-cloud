@@ -7,12 +7,13 @@
     "deploy:all": "bun scripts/deploy.mjs all",
     "deploy:proxy": "bun scripts/deploy.mjs proxy",
     "deploy:wm31": "bun scripts/deploy.mjs wm31",
-    "deploy:morning": "bun scripts/deploy.mjs morning",
+    "deploy:brawlstars": "bun scripts/deploy.mjs brawlstars",
+    "deploy:morning": "bun scripts/deploy.mjs brawlstars",
     "deploy:recipe": "bun scripts/deploy.mjs recipe",
     "deploy:homepage": "bun scripts/deploy.mjs homepage",
     "deploy:postgres": "bun scripts/deploy.mjs postgres",
-    "install:supercell-cron": "ssh oracle /home/ubuntu/bots/oracle/scripts/install-supercell-reward-cron",
-    "claim:supercell": "ssh oracle /home/ubuntu/bots/oracle/scripts/claim-supercell-reward",
+    "install:brawlstars-cron": "ssh oracle /home/ubuntu/bots/oracle/scripts/install-brawlstars-claim-cron",
+    "claim:brawlstars": "ssh oracle /home/ubuntu/bots/oracle/scripts/claim-brawlstars-reward",
     "status": "ssh oracle /home/ubuntu/bots/oracle/scripts/status"
   }
 }

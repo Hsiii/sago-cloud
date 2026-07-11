@@ -34,7 +34,7 @@ services:
     networks:
       - shared
 
-  morning-dashboard:
+  brawl-stars-claimer:
     build:
       context: ../apps/morning
       args:
@@ -44,11 +44,11 @@ services:
     mem_limit: 768m
     shm_size: 512mb
     env_file:
-      - ../secrets/morning.env
+      - ../secrets/brawl-stars-claimer.env
     environment:
-      MORNING_CAPTURE_ENABLED: "false"
+      BRAWL_STARS_CLAIMER_ENABLED: "false"
     volumes:
-      - morning-dashboard-state:/app/state
+      - brawl-stars-claimer-state:/app/state
     networks:
       - shared
 
@@ -112,7 +112,7 @@ volumes:
   wm31bot-state:
     external: true
     name: wm31bot_wm31bot-state
-  morning-dashboard-state:
+  brawl-stars-claimer-state:
     external: true
     name: morning_morning-dashboard-state
   recipe-site-uploads:

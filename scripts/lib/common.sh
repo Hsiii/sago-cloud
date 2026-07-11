@@ -50,7 +50,7 @@ pull_repo() {
 
 compose_up() {
   ensure_docker_volumes
-  "${DOCKER[@]}" compose -f "$COMPOSE_FILE" up -d --build "$@"
+  "${DOCKER[@]}" compose -f "$COMPOSE_FILE" up -d --build --remove-orphans "$@"
 }
 
 compose_ps() {

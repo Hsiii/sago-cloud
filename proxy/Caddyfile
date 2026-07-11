@@ -1,3 +1,14 @@
+{$HOMEPAGE_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Referrer-Policy no-referrer
+		X-Content-Type-Options nosniff
+	}
+
+	reverse_proxy homepage:3102
+}
+
 {$DOMAIN} {
 	encode zstd gzip
 

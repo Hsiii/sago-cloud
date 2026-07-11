@@ -19,11 +19,13 @@ git under `/home/ubuntu/bots/secrets`.
     wm31/              # WM31Bot app repo
     morning/           # MorningDashboard app repo
     recipe/            # Recipes app repo
+    homepage/          # Browser homepage app repo
   secrets/
     proxy.env
     wm31.env
     morning.env
     recipe.env
+    homepage.env
     postgres.env
 ```
 
@@ -35,6 +37,7 @@ git under `/home/ubuntu/bots/secrets`.
 - `wm31bot`, the Discord bot API and gateway.
 - `morning-dashboard`, the private morning dashboard.
 - `recipe-site`, the recipe archive.
+- `homepage`, the browser homepage.
 - `postgres`, a private PostgreSQL server for app containers.
 
 All services attach to the external `bots_shared` Docker network. Named
@@ -47,6 +50,7 @@ recipe uploads.
 - `/` and `/wm31/*` route to `wm31bot:3000`
 - `/morning/*` routes to `morning-dashboard:3100`
 - `/recipe/*` routes to `recipe-site:3101`
+- `homepage.hsichen.dev` routes to `homepage:3102`
 - PostgreSQL is reachable only on the shared Docker network at `postgres:5432`.
 
 ## Scheduled Jobs
@@ -77,6 +81,7 @@ cp env/proxy.env.example /home/ubuntu/bots/secrets/proxy.env
 cp env/wm31.env.example /home/ubuntu/bots/secrets/wm31.env
 cp env/morning.env.example /home/ubuntu/bots/secrets/morning.env
 cp env/recipe.env.example /home/ubuntu/bots/secrets/recipe.env
+cp env/homepage.env.example /home/ubuntu/bots/secrets/homepage.env
 cp env/postgres.env.example /home/ubuntu/bots/secrets/postgres.env
 ```
 
@@ -96,6 +101,7 @@ scripts/deploy-proxy
 scripts/deploy-wm31
 scripts/deploy-morning
 scripts/deploy-recipe
+scripts/deploy-homepage
 scripts/deploy-postgres
 scripts/deploy-all
 scripts/status

@@ -65,6 +65,17 @@ services:
     networks:
       - shared
 
+  homepage:
+    build:
+      context: ../apps/homepage
+    restart: unless-stopped
+    cpus: 0.5
+    mem_limit: 512m
+    env_file:
+      - ../secrets/homepage.env
+    networks:
+      - shared
+
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped

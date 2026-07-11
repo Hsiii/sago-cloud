@@ -7,6 +7,7 @@ const allowedServices = new Set([
   "wm31",
   "morning",
   "recipe",
+  "homepage",
   "postgres",
 ]);
 const remoteHost = process.env.ORACLE_HOST ?? "oracle";

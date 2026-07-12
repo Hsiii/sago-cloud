@@ -3,8 +3,6 @@ set -euo pipefail
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
 
-ensure_docker_network
-
 container_id="$("${DOCKER[@]}" compose -f "$COMPOSE_FILE" ps -q brawl-stars-claimer)"
 container_running="$("${DOCKER[@]}" inspect -f '{{.State.Running}}' "$container_id" 2>/dev/null || true)"
 

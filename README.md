@@ -72,6 +72,7 @@ Run these from the VM:
 ```bash
 scripts/deploy-brawlstars
 scripts/install-brawlstars-claim-cron
+scripts/claim-brawlstars-reward --profile friend1
 ```
 
 ## Secrets

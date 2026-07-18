@@ -1,0 +1,12 @@
+[Unit]
+Description=Test restoring the latest Oracle PostgreSQL backup
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/home/ubuntu/bots/oracle
+ExecStart=/home/ubuntu/bots/oracle/scripts/verify-postgres-backup
+TimeoutStartSec=30min
+

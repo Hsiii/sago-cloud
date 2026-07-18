@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
+
+backup_dir="${POSTGRES_BACKUP_DIR:-"$ORACLE_ROOT/../backups/postgres"}"
+verify_database="oracle_backup_verify"
+container_archive="/tmp/oracle-backup-verify.dump"
+latest_backup="$(find "$backup_dir" -maxdepth 1 -type f -name 'oracle-*.dump' -print \
+  | sort | tail -n 1)"
+
+if [ -z "$latest_backup" ]; then
+  printf 'No PostgreSQL backup found in %s.\n' "$backup_dir" >&2
+  exit 1
+fi
+
+cleanup() {
+  "${DOCKER[@]}" compose -f "$COMPOSE_FILE" exec -T postgres sh -ceu '
+    dropdb --if-exists --username="$POSTGRES_USER" "$1"
+    rm -f "$2"
+  ' sh "$verify_database" "$container_archive" >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
+
+"${DOCKER[@]}" compose -f "$COMPOSE_FILE" cp \
+  "$latest_backup" "postgres:$container_archive"
+"${DOCKER[@]}" compose -f "$COMPOSE_FILE" exec -T -u root postgres \
+  chmod 0644 "$container_archive"
+"${DOCKER[@]}" compose -f "$COMPOSE_FILE" exec -T postgres sh -ceu '
+  dropdb --if-exists --username="$POSTGRES_USER" "$1"
+  createdb --username="$POSTGRES_USER" "$1"
+  pg_restore \
+    --exit-on-error \
+    --no-owner \
+    --no-privileges \
+    --username="$POSTGRES_USER" \
+    --dbname="$1" \
+    "$2"
+  psql --username="$POSTGRES_USER" --dbname="$1" --tuples-only \
+    --command="SELECT count(*) FROM pg_catalog.pg_class" >/dev/null
+' sh "$verify_database" "$container_archive"
+
+printf 'Restored and queried PostgreSQL backup successfully: %s\n' "$latest_backup"
+

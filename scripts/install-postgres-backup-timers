@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
+
+if [ "$(id -u)" -eq 0 ]; then
+  SUDO=()
+else
+  SUDO=(sudo -n)
+fi
+
+units=(
+  oracle-postgres-backup.service
+  oracle-postgres-backup.timer
+  oracle-postgres-restore-test.service
+  oracle-postgres-restore-test.timer
+)
+
+for unit in "${units[@]}"; do
+  "${SUDO[@]}" install -m 0644 "$ORACLE_ROOT/systemd/$unit" "/etc/systemd/system/$unit"
+done
+
+install -d -m 0700 "$ORACLE_ROOT/../backups/postgres"
+"${SUDO[@]}" systemctl daemon-reload
+"${SUDO[@]}" systemctl enable --now \
+  oracle-postgres-backup.timer \
+  oracle-postgres-restore-test.timer
+"${SUDO[@]}" systemctl list-timers \
+  oracle-postgres-backup.timer \
+  oracle-postgres-restore-test.timer \
+  --no-pager
+

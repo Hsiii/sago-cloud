@@ -1,0 +1,13 @@
+[Unit]
+Description=Back up Oracle PostgreSQL daily
+
+[Timer]
+OnCalendar=*-*-* 02:15:00 UTC
+RandomizedDelaySec=15min
+Persistent=true
+AccuracySec=1min
+Unit=oracle-postgres-backup.service
+
+[Install]
+WantedBy=timers.target
+

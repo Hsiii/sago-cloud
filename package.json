@@ -15,6 +15,9 @@
     "install:brawlstars-timer": "ssh oracle /home/ubuntu/bots/oracle/scripts/install-brawlstars-claim-timer --enable",
     "pause:brawlstars-timer": "ssh oracle /home/ubuntu/bots/oracle/scripts/install-brawlstars-claim-timer --disable",
     "claim:brawlstars": "ssh oracle /home/ubuntu/bots/oracle/scripts/claim-brawlstars-reward",
+    "backup:postgres": "ssh oracle /home/ubuntu/bots/oracle/scripts/backup-postgres",
+    "verify:postgres-backup": "ssh oracle /home/ubuntu/bots/oracle/scripts/verify-postgres-backup",
+    "install:postgres-backups": "ssh oracle /home/ubuntu/bots/oracle/scripts/install-postgres-backup-timers",
     "status": "ssh oracle /home/ubuntu/bots/oracle/scripts/status"
   }
 }

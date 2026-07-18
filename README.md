@@ -79,6 +79,22 @@ scripts/claim-brawlstars-reward --profile friend1
 journalctl -u oracle-brawlstars-claim.service
 ```
 
+PostgreSQL is dumped daily at `02:15 UTC` plus up to 15 minutes of randomized
+delay. Seven days of custom-format dumps are retained under
+`/home/ubuntu/bots/backups/postgres`. Every Sunday, the latest dump is restored
+into a disposable database and queried before being dropped.
+
+```bash
+scripts/install-postgres-backup-timers
+scripts/backup-postgres
+scripts/verify-postgres-backup
+journalctl -u oracle-postgres-backup.service
+```
+
+These local backups protect against database and application mistakes. They do
+not protect against losing the VM; configure encrypted replication to an
+off-host destination separately.
+
 ## Secrets
 
 Create production env files from the public examples:

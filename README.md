@@ -81,8 +81,9 @@ journalctl -u oracle-brawlstars-claim.service
 
 PostgreSQL is dumped daily at `02:15 UTC` plus up to 15 minutes of randomized
 delay. Seven days of custom-format dumps are retained under
-`/home/ubuntu/bots/backups/postgres`. Every Sunday, the latest dump is restored
-into a disposable database and queried before being dropped.
+`/home/ubuntu/bots/backups/postgres`, plus the latest four Sunday dumps under
+its `weekly` directory. Every Sunday, the latest dump is restored into a
+disposable database and queried before being dropped.
 
 ```bash
 scripts/install-postgres-backup-timers

@@ -5,13 +5,17 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
 
 backup_dir="${POSTGRES_BACKUP_DIR:-"$ORACLE_ROOT/../backups/postgres"}"
 retention_days="${POSTGRES_BACKUP_RETENTION_DAYS:-7}"
+weekly_retention="${POSTGRES_BACKUP_WEEKLY_RETENTION:-4}"
+weekly_dir="$backup_dir/weekly"
 
-if ! [[ "$retention_days" =~ ^[1-9][0-9]*$ ]]; then
-  printf 'POSTGRES_BACKUP_RETENTION_DAYS must be a positive integer.\n' >&2
+if ! [[ "$retention_days" =~ ^[1-9][0-9]*$ ]] \
+  || ! [[ "$weekly_retention" =~ ^[1-9][0-9]*$ ]]; then
+  printf 'PostgreSQL backup retention values must be positive integers.\n' >&2
   exit 64
 fi
 
 install -d -m 0700 "$backup_dir"
+install -d -m 0700 "$weekly_dir"
 
 timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
 target="$backup_dir/oracle-$timestamp.dump"
@@ -37,8 +41,20 @@ trap cleanup EXIT
 
 chmod 0600 "$temporary"
 mv "$temporary" "$target"
+
+if [ "$(date -u +%u)" -eq 7 ]; then
+  cp -p "$target" "$weekly_dir/oracle-weekly-$timestamp.dump"
+fi
+
 find "$backup_dir" -maxdepth 1 -type f -name 'oracle-*.dump' \
   -mtime "+$retention_days" -delete
+mapfile -t weekly_backups < <(
+  find "$weekly_dir" -maxdepth 1 -type f -name 'oracle-weekly-*.dump' -print \
+    | sort -r
+)
+
+for ((index = weekly_retention; index < ${#weekly_backups[@]}; index += 1)); do
+  rm -f -- "${weekly_backups[$index]}"
+done
 
 printf 'Created verified PostgreSQL backup: %s\n' "$target"
-

@@ -1,0 +1,17 @@
+[Unit]
+Description=Claim daily Brawl Stars Store rewards
+After=docker.service network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=3h
+StartLimitBurst=3
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/home/ubuntu/bots/oracle
+ExecStart=/usr/bin/flock -n /tmp/oracle-brawlstars-claim.lock /home/ubuntu/bots/oracle/scripts/claim-brawlstars-reward
+TimeoutStartSec=20min
+Restart=on-failure
+RestartSec=30min
+RestartPreventExitStatus=2
+

@@ -57,22 +57,26 @@ recipe uploads.
 
 ## Scheduled Jobs
 
-`scripts/install-brawlstars-claim-cron` installs an idempotent cron entry that
-runs `scripts/claim-brawlstars-reward` every day at `09:00 UTC`, which is
-`17:00 GMT+8`.
+`scripts/install-brawlstars-claim-timer --enable` installs a persistent systemd
+timer that runs `scripts/claim-brawlstars-reward` once daily at `09:00 UTC`
+plus up to ten minutes of randomized delay. Transient failures retry up to two
+times, 30 minutes apart. Exit code 2 means profile authentication is required;
+that failure remains visible in systemd without retrying.
 
 The claim script runs the one-shot Playwright command inside the
 `brawl-stars-claimer` container. It claims every profile configured in
 `BRAWL_STARS_CLAIMER_PROFILES`, reusing each profile's saved Playwright auth
-state from the mounted state volume, and logs cron output to
-`/home/ubuntu/bots/logs/brawlstars-claim.log`.
+state from the mounted state volume. Output is stored in the system journal.
+The installer removes the legacy cron entry. Its safe default is `--disable`,
+so repair all profile authentication before explicitly enabling the timer.
 
 Run these from the VM:
 
 ```bash
 scripts/deploy-brawlstars
-scripts/install-brawlstars-claim-cron
+scripts/install-brawlstars-claim-timer --enable
 scripts/claim-brawlstars-reward --profile friend1
+journalctl -u oracle-brawlstars-claim.service
 ```
 
 ## Secrets

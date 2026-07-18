@@ -12,7 +12,8 @@
     "deploy:recipe": "bun scripts/deploy.mjs recipe",
     "deploy:homepage": "bun scripts/deploy.mjs homepage",
     "deploy:postgres": "bun scripts/deploy.mjs postgres",
-    "install:brawlstars-cron": "ssh oracle /home/ubuntu/bots/oracle/scripts/install-brawlstars-claim-cron",
+    "install:brawlstars-timer": "ssh oracle /home/ubuntu/bots/oracle/scripts/install-brawlstars-claim-timer --enable",
+    "pause:brawlstars-timer": "ssh oracle /home/ubuntu/bots/oracle/scripts/install-brawlstars-claim-timer --disable",
     "claim:brawlstars": "ssh oracle /home/ubuntu/bots/oracle/scripts/claim-brawlstars-reward",
     "status": "ssh oracle /home/ubuntu/bots/oracle/scripts/status"
   }

@@ -39,6 +39,10 @@
 		reverse_proxy brawl-stars-claimer:3100
 	}
 
+	handle_path /wm31/* {
+		reverse_proxy minisago:3000
+	}
+
 	handle {
 		reverse_proxy minisago:3000
 	}

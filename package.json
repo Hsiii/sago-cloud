@@ -18,6 +18,7 @@
     "backup:postgres": "ssh oracle /home/ubuntu/bots/oracle/scripts/backup-postgres",
     "verify:postgres-backup": "ssh oracle /home/ubuntu/bots/oracle/scripts/verify-postgres-backup",
     "install:postgres-backups": "ssh oracle /home/ubuntu/bots/oracle/scripts/install-postgres-backup-timers",
+    "install:health-watch": "ssh oracle /home/ubuntu/bots/oracle/scripts/install-health-watch-timer",
     "status": "ssh oracle /home/ubuntu/bots/oracle/scripts/status"
   }
 }

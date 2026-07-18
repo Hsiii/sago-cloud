@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
+
+state_dir="${HEALTH_WATCH_STATE_DIR:-"$ORACLE_ROOT/../state/health-watch"}"
+cooldown_seconds="${HEALTH_RESTART_COOLDOWN_SECONDS:-1800}"
+
+if ! [[ "$cooldown_seconds" =~ ^[1-9][0-9]*$ ]]; then
+  printf 'HEALTH_RESTART_COOLDOWN_SECONDS must be a positive integer.\n' >&2
+  exit 64
+fi
+
+mkdir -p "$state_dir"
+now="$(date +%s)"
+
+while IFS= read -r container_id; do
+  [ -n "$container_id" ] || continue
+
+  health="$("${DOCKER[@]}" inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container_id")"
+
+  if [ "$health" != "unhealthy" ]; then
+    continue
+  fi
+
+  container_name="$("${DOCKER[@]}" inspect --format '{{.Name}}' "$container_id")"
+  container_name="${container_name#/}"
+  marker="$state_dir/$container_name.last-restart"
+  last_restart="$(cat "$marker" 2>/dev/null || printf '0')"
+
+  if ! [[ "$last_restart" =~ ^[0-9]+$ ]]; then
+    last_restart=0
+  fi
+
+  if (( now - last_restart < cooldown_seconds )); then
+    printf 'Skipping unhealthy %s: restarted within the %ss cooldown.\n' \
+      "$container_name" "$cooldown_seconds"
+    continue
+  fi
+
+  printf 'Restarting unhealthy container %s.\n' "$container_name"
+  "${DOCKER[@]}" restart "$container_id" >/dev/null
+  printf '%s\n' "$now" > "$marker"
+done < <("${DOCKER[@]}" compose -f "$COMPOSE_FILE" ps -q)

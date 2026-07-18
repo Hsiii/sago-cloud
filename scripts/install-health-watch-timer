@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
+
+if [ "$(id -u)" -eq 0 ]; then
+  SUDO=()
+else
+  SUDO=(sudo -n)
+fi
+
+install -d -m 0755 "$ORACLE_ROOT/../state/health-watch"
+"${SUDO[@]}" install -m 0644 \
+  "$ORACLE_ROOT/systemd/oracle-health-watch.service" \
+  /etc/systemd/system/oracle-health-watch.service
+"${SUDO[@]}" install -m 0644 \
+  "$ORACLE_ROOT/systemd/oracle-health-watch.timer" \
+  /etc/systemd/system/oracle-health-watch.timer
+"${SUDO[@]}" systemctl daemon-reload
+"${SUDO[@]}" systemctl enable --now oracle-health-watch.timer
+"${SUDO[@]}" systemctl status oracle-health-watch.timer --no-pager
+

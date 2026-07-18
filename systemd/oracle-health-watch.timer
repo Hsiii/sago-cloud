@@ -1,0 +1,13 @@
+[Unit]
+Description=Check Oracle container health every five minutes
+
+[Timer]
+OnCalendar=*:0/5
+RandomizedDelaySec=30s
+AccuracySec=30s
+Persistent=true
+Unit=oracle-health-watch.service
+
+[Install]
+WantedBy=timers.target
+

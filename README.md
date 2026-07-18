@@ -95,6 +95,16 @@ These local backups protect against database and application mistakes. They do
 not protect against losing the VM; configure encrypted replication to an
 off-host destination separately.
 
+Container JSON logs rotate at 10 MB with three files retained per service.
+Application health probes run every 60 seconds and PostgreSQL's runs every 30
+seconds. `scripts/install-health-watch-timer` checks the resulting Docker
+health state every five minutes and restarts an unhealthy container at most
+once per 30-minute cooldown. Inspect actions with:
+
+```bash
+journalctl -u oracle-health-watch.service
+```
+
 ## Secrets
 
 Create production env files from the public examples:

@@ -1,0 +1,12 @@
+[Unit]
+Description=Restart unhealthy Oracle containers with a cooldown
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/home/ubuntu/bots/oracle
+ExecStart=/home/ubuntu/bots/oracle/scripts/restart-unhealthy-services
+TimeoutStartSec=10min
+

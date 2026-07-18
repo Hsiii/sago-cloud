@@ -5,8 +5,8 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
 
 ensure_docker_network
 
-if [ ! -f /home/ubuntu/bots/artifacts/homepage/server.js ]; then
-  printf 'Expected homepage artifact at /home/ubuntu/bots/artifacts/homepage/server.js\n' >&2
+if [ ! -f "$ARTIFACTS_ROOT/homepage/server.js" ]; then
+  printf 'Expected homepage artifact at %s/homepage/server.js\n' "$ARTIFACTS_ROOT" >&2
   exit 1
 fi
 

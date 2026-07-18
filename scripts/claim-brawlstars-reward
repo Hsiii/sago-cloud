@@ -7,7 +7,7 @@ container_id="$("${DOCKER[@]}" compose -f "$COMPOSE_FILE" ps -q brawl-stars-clai
 container_running="$("${DOCKER[@]}" inspect -f '{{.State.Running}}' "$container_id" 2>/dev/null || true)"
 
 if [ "$container_running" != "true" ]; then
-  "$ORACLE_ROOT/scripts/deploy-brawlstars"
+  "$INFRA_ROOT/scripts/deploy-brawlstars"
 fi
 
 "${DOCKER[@]}" compose -f "$COMPOSE_FILE" exec -T \

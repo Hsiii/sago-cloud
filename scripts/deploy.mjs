@@ -11,9 +11,9 @@ const allowedServices = new Set([
   "homepage",
   "postgres",
 ]);
-const remoteHost = process.env.ORACLE_HOST ?? "oracle";
+const remoteHost = process.env.PLATFORM_HOST ?? "platform";
 const remoteDeployRoot =
-  process.env.ORACLE_DEPLOY_ROOT ?? "/home/ubuntu/bots/oracle";
+  process.env.PLATFORM_INFRA_ROOT ?? "/srv/platform/infra";
 
 function output(command, args) {
   return execFileSync(command, args, { encoding: "utf8" }).trim();

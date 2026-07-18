@@ -18,8 +18,11 @@ else
   SUDO=(sudo -n)
 fi
 
-cron_marker="# oracle-brawlstars-claim"
-legacy_cron_marker="# oracle-supercell-reward"
+cron_marker="# platform-brawlstars-claim"
+legacy_cron_markers=(
+  "# oracle-brawlstars-claim"
+  "# oracle-supercell-reward"
+)
 current_cron="$(mktemp)"
 next_cron="$(mktemp)"
 
@@ -29,26 +32,28 @@ cleanup() {
 trap cleanup EXIT
 
 crontab -l > "$current_cron" 2>/dev/null || true
-grep -vF "$cron_marker" "$current_cron" \
-  | grep -vF "$legacy_cron_marker" > "$next_cron" || true
+cp "$current_cron" "$next_cron"
+for marker in "$cron_marker" "${legacy_cron_markers[@]}"; do
+  grep -vF "$marker" "$next_cron" > "$current_cron" || true
+  mv "$current_cron" "$next_cron"
+done
 crontab "$next_cron"
 
 "${SUDO[@]}" install -m 0644 \
-  "$ORACLE_ROOT/systemd/oracle-brawlstars-claim.service" \
-  /etc/systemd/system/oracle-brawlstars-claim.service
+  "$INFRA_ROOT/systemd/platform-brawlstars-claim.service" \
+  /etc/systemd/system/platform-brawlstars-claim.service
 "${SUDO[@]}" install -m 0644 \
-  "$ORACLE_ROOT/systemd/oracle-brawlstars-claim.timer" \
-  /etc/systemd/system/oracle-brawlstars-claim.timer
+  "$INFRA_ROOT/systemd/platform-brawlstars-claim.timer" \
+  /etc/systemd/system/platform-brawlstars-claim.timer
 "${SUDO[@]}" systemctl daemon-reload
 
 if [ "$mode" = "--enable" ]; then
-  "${SUDO[@]}" systemctl enable --now oracle-brawlstars-claim.timer
+  "${SUDO[@]}" systemctl enable --now platform-brawlstars-claim.timer
   printf 'Enabled Brawl Stars claim timer.\n'
 else
-  "${SUDO[@]}" systemctl disable --now oracle-brawlstars-claim.timer >/dev/null 2>&1 || true
+  "${SUDO[@]}" systemctl disable --now platform-brawlstars-claim.timer >/dev/null 2>&1 || true
   printf 'Installed Brawl Stars claim timer, left disabled until profile authentication is repaired.\n'
 fi
 
-"${SUDO[@]}" systemctl reset-failed oracle-brawlstars-claim.service >/dev/null 2>&1 || true
-"${SUDO[@]}" systemctl status oracle-brawlstars-claim.timer --no-pager || true
-
+"${SUDO[@]}" systemctl reset-failed platform-brawlstars-claim.service >/dev/null 2>&1 || true
+"${SUDO[@]}" systemctl status platform-brawlstars-claim.timer --no-pager || true

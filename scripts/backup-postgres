@@ -3,7 +3,7 @@ set -euo pipefail
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
 
-backup_dir="${POSTGRES_BACKUP_DIR:-"$ORACLE_ROOT/../backups/postgres"}"
+backup_dir="${POSTGRES_BACKUP_DIR:-"$BACKUPS_ROOT/postgres"}"
 retention_days="${POSTGRES_BACKUP_RETENTION_DAYS:-7}"
 weekly_retention="${POSTGRES_BACKUP_WEEKLY_RETENTION:-4}"
 weekly_dir="$backup_dir/weekly"
@@ -18,7 +18,7 @@ install -d -m 0700 "$backup_dir"
 install -d -m 0700 "$weekly_dir"
 
 timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
-target="$backup_dir/oracle-$timestamp.dump"
+target="$backup_dir/postgres-$timestamp.dump"
 temporary="$target.partial"
 
 cleanup() {
@@ -43,13 +43,13 @@ chmod 0600 "$temporary"
 mv "$temporary" "$target"
 
 if [ "$(date -u +%u)" -eq 7 ]; then
-  cp -p "$target" "$weekly_dir/oracle-weekly-$timestamp.dump"
+  cp -p "$target" "$weekly_dir/postgres-weekly-$timestamp.dump"
 fi
 
-find "$backup_dir" -maxdepth 1 -type f -name 'oracle-*.dump' \
+find "$backup_dir" -maxdepth 1 -type f -name 'postgres-*.dump' \
   -mtime "+$retention_days" -delete
 mapfile -t weekly_backups < <(
-  find "$weekly_dir" -maxdepth 1 -type f -name 'oracle-weekly-*.dump' -print \
+  find "$weekly_dir" -maxdepth 1 -type f -name 'postgres-weekly-*.dump' -print \
     | sort -r
 )
 

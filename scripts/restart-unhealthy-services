@@ -3,7 +3,7 @@ set -euo pipefail
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
 
-state_dir="${HEALTH_WATCH_STATE_DIR:-"$ORACLE_ROOT/../state/health-watch"}"
+state_dir="${HEALTH_WATCH_STATE_DIR:-"$STATE_ROOT/health-watch"}"
 cooldown_seconds="${HEALTH_RESTART_COOLDOWN_SECONDS:-1800}"
 
 if ! [[ "$cooldown_seconds" =~ ^[1-9][0-9]*$ ]]; then

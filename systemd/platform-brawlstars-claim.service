@@ -8,10 +8,9 @@ StartLimitBurst=3
 [Service]
 Type=oneshot
 User=ubuntu
-WorkingDirectory=/home/ubuntu/bots/oracle
-ExecStart=/usr/bin/flock -n /tmp/oracle-brawlstars-claim.lock /home/ubuntu/bots/oracle/scripts/claim-brawlstars-reward
+WorkingDirectory=/srv/platform/infra
+ExecStart=/usr/bin/flock -n /tmp/platform-brawlstars-claim.lock /srv/platform/infra/scripts/claim-brawlstars-reward
 TimeoutStartSec=20min
 Restart=on-failure
 RestartSec=30min
 RestartPreventExitStatus=2
-

@@ -3,10 +3,10 @@ set -euo pipefail
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
 
-backup_dir="${POSTGRES_BACKUP_DIR:-"$ORACLE_ROOT/../backups/postgres"}"
-verify_database="oracle_backup_verify"
-container_archive="/tmp/oracle-backup-verify.dump"
-latest_backup="$(find "$backup_dir" -maxdepth 1 -type f -name 'oracle-*.dump' -print \
+backup_dir="${POSTGRES_BACKUP_DIR:-"$BACKUPS_ROOT/postgres"}"
+verify_database="platform_backup_verify"
+container_archive="/tmp/platform-backup-verify.dump"
+latest_backup="$(find "$backup_dir" -maxdepth 1 -type f -name 'postgres-*.dump' -print \
   | sort | tail -n 1)"
 
 if [ -z "$latest_backup" ]; then
@@ -41,4 +41,3 @@ trap cleanup EXIT
 ' sh "$verify_database" "$container_archive"
 
 printf 'Restored and queried PostgreSQL backup successfully: %s\n' "$latest_backup"
-

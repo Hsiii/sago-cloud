@@ -6,7 +6,7 @@ OnCalendar=*-*-* 09:00:00 UTC
 RandomizedDelaySec=0
 Persistent=true
 AccuracySec=1s
-Unit=oracle-brawlstars-claim.service
+Unit=platform-brawlstars-claim.service
 
 [Install]
 WantedBy=timers.target

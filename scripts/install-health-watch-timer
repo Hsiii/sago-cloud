@@ -9,14 +9,13 @@ else
   SUDO=(sudo -n)
 fi
 
-install -d -m 0755 "$ORACLE_ROOT/../state/health-watch"
+install -d -m 0755 "$STATE_ROOT/health-watch"
 "${SUDO[@]}" install -m 0644 \
-  "$ORACLE_ROOT/systemd/oracle-health-watch.service" \
-  /etc/systemd/system/oracle-health-watch.service
+  "$INFRA_ROOT/systemd/platform-health-watch.service" \
+  /etc/systemd/system/platform-health-watch.service
 "${SUDO[@]}" install -m 0644 \
-  "$ORACLE_ROOT/systemd/oracle-health-watch.timer" \
-  /etc/systemd/system/oracle-health-watch.timer
+  "$INFRA_ROOT/systemd/platform-health-watch.timer" \
+  /etc/systemd/system/platform-health-watch.timer
 "${SUDO[@]}" systemctl daemon-reload
-"${SUDO[@]}" systemctl enable --now oracle-health-watch.timer
-"${SUDO[@]}" systemctl status oracle-health-watch.timer --no-pager
-
+"${SUDO[@]}" systemctl enable --now platform-health-watch.timer
+"${SUDO[@]}" systemctl status platform-health-watch.timer --no-pager

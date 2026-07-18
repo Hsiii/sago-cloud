@@ -2,18 +2,25 @@
 set -euo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-ORACLE_ROOT="${ORACLE_ROOT:-"$(cd -- "$script_dir/../.." && pwd)"}"
-APPS_ROOT="${APPS_ROOT:-"$ORACLE_ROOT/../apps"}"
-COMPOSE_FILE="${COMPOSE_FILE:-"$ORACLE_ROOT/compose.yaml"}"
-NETWORK_NAME="${NETWORK_NAME:-bots_shared}"
+INFRA_ROOT="${INFRA_ROOT:-"$(cd -- "$script_dir/../.." && pwd)"}"
+PLATFORM_ROOT="${PLATFORM_ROOT:-"$(cd -- "$INFRA_ROOT/.." && pwd)"}"
+APPS_ROOT="${APPS_ROOT:-"$PLATFORM_ROOT/apps"}"
+ARTIFACTS_ROOT="${ARTIFACTS_ROOT:-"$PLATFORM_ROOT/artifacts"}"
+SECRETS_ROOT="${SECRETS_ROOT:-"$PLATFORM_ROOT/secrets"}"
+BACKUPS_ROOT="${BACKUPS_ROOT:-"$PLATFORM_ROOT/backups"}"
+STATE_ROOT="${STATE_ROOT:-"$PLATFORM_ROOT/state"}"
+COMPOSE_FILE="${COMPOSE_FILE:-"$INFRA_ROOT/compose.yaml"}"
+NETWORK_NAME="${NETWORK_NAME:-platform_shared}"
 VOLUME_NAMES=(
-  proxy_caddy-data
-  proxy_caddy-config
-  wm31bot_wm31bot-state
-  morning_morning-dashboard-state
-  recipe_recipe-site-uploads
-  oracle_postgres-data
+  platform_caddy-data
+  platform_caddy-config
+  wm31_state
+  brawl-stars-claimer_state
+  recipe-site_uploads
+  platform_postgres-data
 )
+
+export INFRA_ROOT PLATFORM_ROOT APPS_ROOT ARTIFACTS_ROOT SECRETS_ROOT
 
 if docker info >/dev/null 2>&1; then
   DOCKER=(docker)

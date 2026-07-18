@@ -4,5 +4,5 @@ set -euo pipefail
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
 
 ensure_docker_network
-pull_repo "$ORACLE_ROOT"
+pull_repo "$INFRA_ROOT"
 compose_up caddy

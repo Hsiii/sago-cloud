@@ -1,20 +1,23 @@
-# Oracle
+# Platform Infrastructure
 
-Deployment and runtime wiring for the Oracle VM that hosts personal tools.
+Deployment and runtime wiring for the shared compute host that runs personal
+tools. The host and platform names intentionally stay independent from any one
+application so workloads can be renamed, replaced, or split without rebuilding
+the infrastructure identity.
 
 This repo owns the VM-level pieces: Caddy, TLS, Docker Compose services,
 container resource limits, shared networking, deploy scripts, and server
 operations notes. App source code stays in separate repos and is checked out
-under `/home/ubuntu/bots/apps`.
+under `/srv/platform/apps`.
 
 The repo is safe to publish publicly. Real production env files live outside
-git under `/home/ubuntu/bots/secrets`.
+git under `/srv/platform/secrets`.
 
 ## Layout
 
 ```text
-/home/ubuntu/bots/
-  oracle/              # this repo
+/srv/platform/
+  infra/               # this repo
   apps/
     wm31/              # WM31Bot app repo
     morning/           # Brawl Stars Store Claimer app repo
@@ -41,10 +44,9 @@ git under `/home/ubuntu/bots/secrets`.
 - `homepage`, the browser homepage uploaded as a Next.js standalone artifact.
 - `postgres`, a private PostgreSQL server for app containers.
 
-All services attach to the external `bots_shared` Docker network. Named
-volumes intentionally keep the existing production volume names so migrating to
-this repo does not discard Caddy certificates, bot state, claimer state, or
-recipe uploads.
+All services attach to the external `platform_shared` Docker network. Shared
+infrastructure uses the `platform` namespace; application state volumes retain
+application-specific names and can move independently.
 
 ## Services
 
@@ -76,12 +78,12 @@ Run these from the VM:
 scripts/deploy-brawlstars
 scripts/install-brawlstars-claim-timer --enable
 scripts/claim-brawlstars-reward --profile friend1
-journalctl -u oracle-brawlstars-claim.service
+journalctl -u platform-brawlstars-claim.service
 ```
 
 PostgreSQL is dumped daily at `02:15 UTC` plus up to 15 minutes of randomized
 delay. Seven days of custom-format dumps are retained under
-`/home/ubuntu/bots/backups/postgres`, plus the latest four Sunday dumps under
+`/srv/platform/backups/postgres`, plus the latest four Sunday dumps under
 its `weekly` directory. Every Sunday, the latest dump is restored into a
 disposable database and queried before being dropped.
 
@@ -89,7 +91,7 @@ disposable database and queried before being dropped.
 scripts/install-postgres-backup-timers
 scripts/backup-postgres
 scripts/verify-postgres-backup
-journalctl -u oracle-postgres-backup.service
+journalctl -u platform-postgres-backup.service
 ```
 
 These local backups protect against database and application mistakes. They do
@@ -103,7 +105,7 @@ health state every five minutes and restarts an unhealthy container at most
 once per 30-minute cooldown. Inspect actions with:
 
 ```bash
-journalctl -u oracle-health-watch.service
+journalctl -u platform-health-watch.service
 ```
 
 ## Secrets
@@ -111,20 +113,20 @@ journalctl -u oracle-health-watch.service
 Create production env files from the public examples:
 
 ```bash
-mkdir -p /home/ubuntu/bots/secrets
-cp env/proxy.env.example /home/ubuntu/bots/secrets/proxy.env
-cp env/wm31.env.example /home/ubuntu/bots/secrets/wm31.env
-cp env/brawl-stars-claimer.env.example /home/ubuntu/bots/secrets/brawl-stars-claimer.env
-cp env/recipe.env.example /home/ubuntu/bots/secrets/recipe.env
-cp env/homepage.env.example /home/ubuntu/bots/secrets/homepage.env
-cp env/postgres.env.example /home/ubuntu/bots/secrets/postgres.env
+mkdir -p /srv/platform/secrets
+cp env/proxy.env.example /srv/platform/secrets/proxy.env
+cp env/wm31.env.example /srv/platform/secrets/wm31.env
+cp env/brawl-stars-claimer.env.example /srv/platform/secrets/brawl-stars-claimer.env
+cp env/recipe.env.example /srv/platform/secrets/recipe.env
+cp env/homepage.env.example /srv/platform/secrets/homepage.env
+cp env/postgres.env.example /srv/platform/secrets/postgres.env
 ```
 
 Fill in secret values on the VM only. Do not commit files from
-`/home/ubuntu/bots/secrets`.
+`/srv/platform/secrets`.
 
 Set `POSTGRES_PASSWORD` to a strong generated value before starting PostgreSQL.
-Apps on the `bots_shared` network can use the host `postgres`, port `5432`, and
+Apps on the `platform_shared` network can use the host `postgres`, port `5432`, and
 the database/user values from `postgres.env`.
 
 ## Deploy Scripts
@@ -145,7 +147,7 @@ scripts/status
 Each source-based app deploy script pulls that app checkout, rebuilds the
 matching service, and leaves the other services alone. Homepage is built locally
 from its own repo with `bun run deploy:oracle`, uploaded to
-`/home/ubuntu/bots/artifacts/homepage`, then restarted by
+`/srv/platform/artifacts/homepage`, then restarted by
 `scripts/deploy-homepage`. `deploy-all` pulls this repo and source-based app
 repos before rebuilding the full stack.
 
@@ -154,6 +156,6 @@ repos before rebuilding the full stack.
 For first bootstrapping or emergency manual runs:
 
 ```bash
-docker network create bots_shared
+docker network create platform_shared
 docker compose up -d
 ```

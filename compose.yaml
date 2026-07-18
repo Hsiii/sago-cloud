@@ -1,11 +1,18 @@
 name: oracle
 
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
     cpus: 0.25
     mem_limit: 128m
+    logging: *default-logging
     env_file:
       - ../secrets/proxy.env
     ports:
@@ -25,11 +32,18 @@ services:
     restart: unless-stopped
     cpus: 0.25
     mem_limit: 256m
+    logging: *default-logging
     env_file:
       - ../secrets/wm31.env
     environment:
       GAMER_FORUM_STATE_FILE: /app/state/gamer-forum-state.json
       X_POST_STATE_FILE: /app/state/x-post-state.json
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health >/dev/null || exit 1"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     volumes:
       - wm31bot-state:/app/state
     networks:
@@ -44,10 +58,17 @@ services:
     cpus: 0.5
     mem_limit: 768m
     shm_size: 512mb
+    logging: *default-logging
     env_file:
       - ../secrets/brawl-stars-claimer.env
     environment:
       BRAWL_STARS_CLAIMER_ENABLED: "false"
+    healthcheck:
+      test: ["CMD", "bun", "-e", "const response = await fetch('http://127.0.0.1:3100/api/health'); if (!response.ok) process.exit(1);"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     volumes:
       - brawl-stars-claimer-state:/app/state
     networks:
@@ -59,8 +80,15 @@ services:
     restart: unless-stopped
     cpus: 0.25
     mem_limit: 256m
+    logging: *default-logging
     env_file:
       - ../secrets/recipe.env
+    healthcheck:
+      test: ["CMD", "bun", "-e", "const response = await fetch('http://127.0.0.1:3101/api/health'); if (!response.ok) process.exit(1);"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     volumes:
       - recipe-site-uploads:/app/uploads
     networks:
@@ -73,6 +101,7 @@ services:
     restart: unless-stopped
     cpus: 0.5
     mem_limit: 512m
+    logging: *default-logging
     env_file:
       - ../secrets/homepage.env
     environment:
@@ -82,7 +111,7 @@ services:
       PORT: "3102"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3102/api/health >/dev/null || exit 1"]
-      interval: 30s
+      interval: 60s
       timeout: 5s
       retries: 3
       start_period: 20s
@@ -97,13 +126,14 @@ services:
     cpus: 0.5
     mem_limit: 512m
     shm_size: 128mb
+    logging: *default-logging
     env_file:
       - ../secrets/postgres.env
     environment:
       PGDATA: /var/lib/postgresql/data/pgdata
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
-      interval: 10s
+      interval: 30s
       timeout: 5s
       retries: 5
       start_period: 30s

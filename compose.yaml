@@ -26,26 +26,30 @@ services:
     networks:
       - shared
 
-  wm31bot:
+  minisago:
     build:
-      context: ${APPS_ROOT:-/srv/platform/apps}/wm31
+      context: ${APPS_ROOT:-/srv/platform/apps}/minisago
     restart: unless-stopped
     cpus: 0.25
     mem_limit: 256m
     logging: *default-logging
     env_file:
-      - ${SECRETS_ROOT:-/srv/platform/secrets}/wm31.env
+      - ${SECRETS_ROOT:-/srv/platform/secrets}/minisago.env
     environment:
       GAMER_FORUM_STATE_FILE: /app/state/gamer-forum-state.json
       X_POST_STATE_FILE: /app/state/x-post-state.json
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health >/dev/null || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://127.0.0.1:3000/api/health >/dev/null || exit 1",
+        ]
       interval: 60s
       timeout: 5s
       retries: 3
       start_period: 20s
     volumes:
-      - wm31bot-state:/app/state
+      - minisago-state:/app/state
     networks:
       - shared
 
@@ -64,7 +68,13 @@ services:
     environment:
       BRAWL_STARS_CLAIMER_ENABLED: "false"
     healthcheck:
-      test: ["CMD", "bun", "-e", "const response = await fetch('http://127.0.0.1:3100/api/health'); if (!response.ok) process.exit(1);"]
+      test:
+        [
+          "CMD",
+          "bun",
+          "-e",
+          "const response = await fetch('http://127.0.0.1:3100/api/health'); if (!response.ok) process.exit(1);",
+        ]
       interval: 60s
       timeout: 5s
       retries: 3
@@ -84,7 +94,13 @@ services:
     env_file:
       - ${SECRETS_ROOT:-/srv/platform/secrets}/recipe.env
     healthcheck:
-      test: ["CMD", "bun", "-e", "const response = await fetch('http://127.0.0.1:3101/api/health'); if (!response.ok) process.exit(1);"]
+      test:
+        [
+          "CMD",
+          "bun",
+          "-e",
+          "const response = await fetch('http://127.0.0.1:3101/api/health'); if (!response.ok) process.exit(1);",
+        ]
       interval: 60s
       timeout: 5s
       retries: 3
@@ -110,7 +126,11 @@ services:
       NODE_ENV: production
       PORT: "3102"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3102/api/health >/dev/null || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://127.0.0.1:3102/api/health >/dev/null || exit 1",
+        ]
       interval: 60s
       timeout: 5s
       retries: 3
@@ -132,7 +152,8 @@ services:
     environment:
       PGDATA: /var/lib/postgresql/data/pgdata
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      test:
+        ["CMD-SHELL", 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
       interval: 30s
       timeout: 5s
       retries: 5
@@ -154,9 +175,9 @@ volumes:
   caddy-config:
     external: true
     name: platform_caddy-config
-  wm31bot-state:
+  minisago-state:
     external: true
-    name: wm31_state
+    name: minisago_state
   brawl-stars-claimer-state:
     external: true
     name: brawl-stars-claimer_state

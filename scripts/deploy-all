@@ -5,7 +5,7 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
 
 ensure_docker_network
 pull_repo "$INFRA_ROOT"
-pull_repo "$APPS_ROOT/wm31"
+pull_repo "$APPS_ROOT/minisago"
 pull_repo "$APPS_ROOT/morning"
 pull_repo "$APPS_ROOT/recipe"
 compose_up

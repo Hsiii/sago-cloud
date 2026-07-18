@@ -17,7 +17,6 @@
 		X-Content-Type-Options nosniff
 	}
 
-	redir /wm31 /wm31/ 308
 	redir /brawlstars /brawlstars/ 308
 	redir /morning /brawlstars/ 308
 	redir /recipe /recipe/ 308
@@ -40,11 +39,7 @@
 		reverse_proxy brawl-stars-claimer:3100
 	}
 
-	handle_path /wm31/* {
-		reverse_proxy wm31bot:3000
-	}
-
 	handle {
-		reverse_proxy wm31bot:3000
+		reverse_proxy minisago:3000
 	}
 }

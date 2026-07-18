@@ -6,7 +6,7 @@
     "deploy": "bun scripts/deploy.mjs all",
     "deploy:all": "bun scripts/deploy.mjs all",
     "deploy:proxy": "bun scripts/deploy.mjs proxy",
-    "deploy:wm31": "bun scripts/deploy.mjs wm31",
+    "deploy:minisago": "bun scripts/deploy.mjs minisago",
     "deploy:brawlstars": "bun scripts/deploy.mjs brawlstars",
     "deploy:morning": "bun scripts/deploy.mjs brawlstars",
     "deploy:recipe": "bun scripts/deploy.mjs recipe",

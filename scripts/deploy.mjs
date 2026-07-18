@@ -4,7 +4,7 @@ const service = process.argv[2] ?? "all";
 const allowedServices = new Set([
   "all",
   "proxy",
-  "wm31",
+  "minisago",
   "brawlstars",
   "morning",
   "recipe",
@@ -35,7 +35,9 @@ if (!allowedServices.has(service)) {
 const branch = output("git", ["branch", "--show-current"]);
 
 if (branch !== "main") {
-  console.error(`Deploy from main. Current branch is ${branch || "(detached)"}.`);
+  console.error(
+    `Deploy from main. Current branch is ${branch || "(detached)"}.`,
+  );
   process.exit(1);
 }
 

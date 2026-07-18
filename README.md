@@ -19,14 +19,14 @@ git under `/srv/platform/secrets`.
 /srv/platform/
   infra/               # this repo
   apps/
-    wm31/              # WM31Bot app repo
+    minisago/          # MiniSago app repo
     morning/           # Brawl Stars Store Claimer app repo
     recipe/            # Recipes app repo
   artifacts/
     homepage/          # Uploaded Next.js standalone artifact
   secrets/
     proxy.env
-    wm31.env
+    minisago.env
     brawl-stars-claimer.env
     recipe.env
     homepage.env
@@ -38,7 +38,7 @@ git under `/srv/platform/secrets`.
 `compose.yaml` runs:
 
 - `caddy`, the public HTTPS router.
-- `wm31bot`, the Discord bot API and gateway.
+- `minisago`, the personal Discord bot API and gateway.
 - `brawl-stars-claimer`, the private Brawl Stars Store reward claimer.
 - `recipe-site`, the recipe archive.
 - `homepage`, the browser homepage uploaded as a Next.js standalone artifact.
@@ -50,7 +50,7 @@ application-specific names and can move independently.
 
 ## Services
 
-- `/` and `/wm31/*` route to `wm31bot:3000`
+- The bot domain routes `/` to `minisago:3000`
 - `/brawlstars/*` routes to `brawl-stars-claimer:3100`
 - `/morning/*` redirects to `/brawlstars/`
 - `/recipe/*` routes to `recipe-site:3101`
@@ -115,7 +115,7 @@ Create production env files from the public examples:
 ```bash
 mkdir -p /srv/platform/secrets
 cp env/proxy.env.example /srv/platform/secrets/proxy.env
-cp env/wm31.env.example /srv/platform/secrets/wm31.env
+cp env/minisago.env.example /srv/platform/secrets/minisago.env
 cp env/brawl-stars-claimer.env.example /srv/platform/secrets/brawl-stars-claimer.env
 cp env/recipe.env.example /srv/platform/secrets/recipe.env
 cp env/homepage.env.example /srv/platform/secrets/homepage.env
@@ -135,7 +135,7 @@ Run these from the VM:
 
 ```bash
 scripts/deploy-proxy
-scripts/deploy-wm31
+scripts/deploy-minisago
 scripts/deploy-brawlstars
 scripts/deploy-recipe
 scripts/deploy-homepage

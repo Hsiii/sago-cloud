@@ -14,7 +14,7 @@ NETWORK_NAME="${NETWORK_NAME:-platform_shared}"
 VOLUME_NAMES=(
   platform_caddy-data
   platform_caddy-config
-  wm31_state
+  minisago_state
   brawl-stars-claimer_state
   recipe-site_uploads
   platform_postgres-data

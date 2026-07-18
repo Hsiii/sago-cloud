@@ -36,8 +36,7 @@ Each workload is an independent Docker Compose project attached to the external
 - `postgres`: private PostgreSQL for services that need it.
 
 Caddy discovers services through role-based network aliases. `/bot/*` is the
-neutral bot route. `/wm31/*` remains a compatibility alias, and `/` continues to
-route to `bot-core`.
+neutral bot route, and `/` routes to `bot-core`.
 
 ## Images
 

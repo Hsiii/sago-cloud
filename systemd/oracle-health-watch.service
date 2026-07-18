@@ -5,8 +5,7 @@ Requires=docker.service
 
 [Service]
 Type=oneshot
-User=ubuntu
+User=root
 WorkingDirectory=/home/ubuntu/bots/oracle
 ExecStart=/home/ubuntu/bots/oracle/scripts/restart-unhealthy-services
 TimeoutStartSec=10min
-

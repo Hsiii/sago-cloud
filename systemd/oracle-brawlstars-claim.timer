@@ -3,11 +3,10 @@ Description=Claim Brawl Stars Store rewards once daily
 
 [Timer]
 OnCalendar=*-*-* 09:00:00 UTC
-RandomizedDelaySec=10min
+RandomizedDelaySec=0
 Persistent=true
-AccuracySec=1min
+AccuracySec=1s
 Unit=oracle-brawlstars-claim.service
 
 [Install]
 WantedBy=timers.target
-

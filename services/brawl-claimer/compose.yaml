@@ -21,6 +21,7 @@ services:
     environment:
       BRAWL_CLAIM_ENABLED: "false"
       BRAWL_STARS_CLAIMER_CLAIM_TIMEOUT_MS: "300000"
+      BRAWL_STARS_CLAIMER_REWARD_SELECTORS: ""
     healthcheck:
       test:
         - CMD

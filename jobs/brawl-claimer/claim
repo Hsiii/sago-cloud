@@ -13,4 +13,4 @@ fi
 
 compose brawl-claimer exec -T \
   brawl-claimer \
-  xvfb-run -a bun src/server.ts --claim-once "$@"
+  bun src/server.ts --claim-once "$@"

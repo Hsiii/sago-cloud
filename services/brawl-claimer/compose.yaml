@@ -10,7 +10,7 @@ services:
   brawl-claimer:
     image: ghcr.io/hsiii/brawl-claim:${BRAWL_CLAIMER_IMAGE_TAG:-sha-59daeb8}
     restart: unless-stopped
-    cpus: 0.5
+    cpus: 1.0
     mem_limit: 768m
     shm_size: 512mb
     logging: *default-logging

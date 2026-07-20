@@ -9,7 +9,70 @@ else
   SUDO=(sudo -n)
 fi
 
-install -d -m 0755 "$STATE_ROOT/health-watch"
+INSTALL_ROOT="${INSTALL_ROOT:-/usr/local/libexec/platform-health-watch}"
+release_root="$INSTALL_ROOT/releases"
+watcher_source="$OPERATIONS_ROOT/scripts/restart-unhealthy-services"
+library_source="$OPERATIONS_ROOT/scripts/lib/common.sh"
+
+closure_digest() {
+  sha256sum "$1" "$2" | awk '{print $1}' | sha256sum | awk '{print $1}'
+}
+
+source_digest="$(closure_digest "$watcher_source" "$library_source")"
+release_dir="$release_root/$source_digest"
+staging_dir=
+activation_dir=
+
+cleanup() {
+  if [[ -n "$staging_dir" && "$staging_dir" == "$release_root"/.staging.* ]]; then
+    "${SUDO[@]}" rm -rf -- "$staging_dir"
+  fi
+  if [[ -n "$activation_dir" && "$activation_dir" == "$INSTALL_ROOT"/.activate.* ]]; then
+    "${SUDO[@]}" rm -rf -- "$activation_dir"
+  fi
+}
+trap cleanup EXIT
+
+"${SUDO[@]}" install -d -o root -g root -m 0755 "$release_root"
+
+if ! "${SUDO[@]}" test -d "$release_dir"; then
+  staging_dir="$("${SUDO[@]}" mktemp -d "$release_root/.staging.XXXXXX")"
+  "${SUDO[@]}" chmod 0755 "$staging_dir"
+  "${SUDO[@]}" install -d -o root -g root -m 0755 "$staging_dir/scripts/lib"
+  "${SUDO[@]}" install -o root -g root -m 0755 \
+    "$watcher_source" \
+    "$staging_dir/scripts/restart-unhealthy-services"
+  "${SUDO[@]}" install -o root -g root -m 0644 \
+    "$library_source" \
+    "$staging_dir/scripts/lib/common.sh"
+
+  installed_digest="$(closure_digest \
+    "$staging_dir/scripts/restart-unhealthy-services" \
+    "$staging_dir/scripts/lib/common.sh")"
+  if [ "$installed_digest" != "$source_digest" ]; then
+    printf 'Health-watch release changed while it was being installed.\n' >&2
+    exit 1
+  fi
+
+  "${SUDO[@]}" mv -T "$staging_dir" "$release_dir"
+  staging_dir=
+fi
+
+installed_digest="$(closure_digest \
+  "$release_dir/scripts/restart-unhealthy-services" \
+  "$release_dir/scripts/lib/common.sh")"
+if [ "$installed_digest" != "$source_digest" ]; then
+  printf 'Existing health-watch release does not match its content digest.\n' >&2
+  exit 1
+fi
+
+activation_dir="$("${SUDO[@]}" mktemp -d "$INSTALL_ROOT/.activate.XXXXXX")"
+"${SUDO[@]}" ln -s "$release_dir" "$activation_dir/current"
+"${SUDO[@]}" mv -Tf "$activation_dir/current" "$INSTALL_ROOT/current"
+"${SUDO[@]}" rmdir "$activation_dir"
+activation_dir=
+
+"${SUDO[@]}" install -d -o root -g root -m 0755 "$STATE_ROOT/health-watch"
 "${SUDO[@]}" install -m 0644 \
   "$OPERATIONS_ROOT/systemd/platform-health-watch.service" \
   /etc/systemd/system/platform-health-watch.service

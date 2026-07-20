@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+service_file="$repo_root/systemd/platform-health-watch.service"
+installer="$repo_root/scripts/install-health-watch-timer"
+watcher="$repo_root/scripts/restart-unhealthy-services"
+
+installed_exec=/usr/local/libexec/platform-health-watch/current/scripts/restart-unhealthy-services
+
+grep -Fqx "ExecStart=$installed_exec" "$service_file"
+if grep -Eq '^ExecStart=/srv/platform/operations(?:/|$)' "$service_file"; then
+  printf 'health watcher still executes deployment-checkout code\n' >&2
+  exit 1
+fi
+
+grep -Fq 'INSTALL_ROOT="${INSTALL_ROOT:-/usr/local/libexec/platform-health-watch}"' "$installer"
+grep -Fq 'scripts/restart-unhealthy-services' "$installer"
+grep -Fq 'scripts/lib/common.sh' "$installer"
+grep -Fq 'mv -Tf "$activation_dir/current" "$INSTALL_ROOT/current"' "$installer"
+
+source_count="$(grep -Ec '^source ' "$watcher")"
+source_line="$(grep -E '^source ' "$watcher")"
+if [ "$source_count" -ne 1 ] || [[ "$source_line" != *'/lib/common.sh"' ]]; then
+  printf 'unexpected executable dependency in health watcher\n' >&2
+  exit 1
+fi
+
+printf 'root health-watch execution boundary is installed and atomic\n'

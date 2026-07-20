@@ -85,6 +85,12 @@ scripts/install-health-watch-timer
 scripts/install-postgres-backup-timers
 ```
 
+The health-watch installer copies the watcher and its shell dependency into a
+content-addressed, root-owned release under
+`/usr/local/libexec/platform-health-watch`, then atomically activates that
+release. Updating the operations checkout does not change the code executed by
+the root service until this explicit installation step succeeds.
+
 The health watcher finds managed containers using the
 `dev.hsichen.platform.managed=true` label, so it works across independent
 Compose projects.

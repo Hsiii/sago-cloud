@@ -37,11 +37,11 @@ services:
     volumes:
       - /srv/platform/artifacts/homepage:/app:ro
     networks:
-      edge:
+      frontend:
         aliases:
           - homepage
 
 networks:
-  edge:
+  frontend:
     external: true
-    name: platform_edge
+    name: ${EDGE_NETWORK_NAME:-platform_edge}

@@ -30,14 +30,14 @@ services:
     volumes:
       - recipes-uploads:/app/uploads
     networks:
-      edge:
+      frontend:
         aliases:
           - recipes
 
 networks:
-  edge:
+  frontend:
     external: true
-    name: platform_edge
+    name: ${EDGE_NETWORK_NAME:-platform_edge}
 
 volumes:
   recipes-uploads:

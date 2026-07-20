@@ -20,21 +20,27 @@ host, edge network, deployment tooling, or backup layout.
 
 Run `scripts/install-layout` after cloning this repository to
 `/srv/platform/operations`. It creates the runtime links, the `platform_edge`
-network, and external volumes.
+frontend network, the isolated `platform_data` database network, and external
+volumes.
 
 ## Runtime Stacks
 
-Each workload is an independent Docker Compose project attached to the external
-`platform_edge` network:
+Each workload is an independent Docker Compose project. Public services attach
+to the external `platform_edge` frontend network, while PostgreSQL attaches only
+to the external `platform_data` network:
 
 - `edge`: Caddy and public TLS routing.
 - `bot-core`: the current Discord bot runtime, published by MiniSago.
 - `recipes`: the recipe archive.
 - `homepage`: the uploaded homepage artifact.
-- `postgres`: private PostgreSQL for services that need it.
+- `postgres`: private PostgreSQL, isolated from the public-service network.
 
 Caddy discovers services through role-based network aliases. `/bot/*` is the
 neutral bot route, and `/` routes to `bot-core`.
+
+No current service is configured to use the local PostgreSQL alias. A future
+database client must be explicitly attached to `platform_data`; it should keep
+its separate `platform_edge` attachment only when Caddy also needs to reach it.
 
 ## Images
 

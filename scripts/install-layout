@@ -11,5 +11,5 @@ ln -sfn "$OPERATIONS_ROOT/edge" "$PLATFORM_ROOT/edge"
 ln -sfn "$OPERATIONS_ROOT/services" "$PLATFORM_ROOT/services"
 ln -sfn "$OPERATIONS_ROOT/jobs" "$PLATFORM_ROOT/jobs"
 
-ensure_docker_network
+ensure_docker_networks
 ensure_docker_volumes

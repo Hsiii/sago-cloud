@@ -31,14 +31,14 @@ services:
     volumes:
       - bot-core-state:/app/state
     networks:
-      edge:
+      frontend:
         aliases:
           - bot-core
 
 networks:
-  edge:
+  frontend:
     external: true
-    name: platform_edge
+    name: ${EDGE_NETWORK_NAME:-platform_edge}
 
 volumes:
   bot-core-state:

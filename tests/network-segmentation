@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+
+assert_contains() {
+  local path=$1
+  local text=$2
+
+  if ! grep -Fq -- "$text" "$repo_root/$path"; then
+    printf '%s does not contain required network declaration: %s\n' "$path" "$text" >&2
+    exit 1
+  fi
+}
+
+assert_absent() {
+  local path=$1
+  local text=$2
+
+  if grep -Fq -- "$text" "$repo_root/$path"; then
+    printf '%s contains forbidden network declaration: %s\n' "$path" "$text" >&2
+    exit 1
+  fi
+}
+
+frontend_files=(
+  edge/compose.yaml
+  services/bot-core/compose.yaml
+  services/homepage/compose.yaml
+  services/recipes/compose.yaml
+)
+
+for compose_file in "${frontend_files[@]}"; do
+  assert_contains "$compose_file" 'name: ${EDGE_NETWORK_NAME:-platform_edge}'
+  assert_absent "$compose_file" 'platform_data'
+done
+
+assert_contains services/postgres/compose.yaml 'name: ${DATA_NETWORK_NAME:-platform_data}'
+assert_absent services/postgres/compose.yaml 'platform_edge'
+
+assert_contains scripts/lib/common.sh 'NETWORK_NAMES=("$EDGE_NETWORK_NAME" "$DATA_NETWORK_NAME")'
+assert_contains scripts/lib/common.sh 'for network_name in "${NETWORK_NAMES[@]}"'
+
+printf 'public-service and PostgreSQL networks are separated\n'

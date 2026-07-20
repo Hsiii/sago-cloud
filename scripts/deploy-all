@@ -3,7 +3,7 @@ set -euo pipefail
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
 
-ensure_docker_network
+ensure_docker_networks
 ensure_docker_volumes
 
 for stack in "${STACKS[@]}"; do

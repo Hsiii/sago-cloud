@@ -31,14 +31,14 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:
-      edge:
+      data:
         aliases:
           - postgres
 
 networks:
-  edge:
+  data:
     external: true
-    name: platform_edge
+    name: ${DATA_NETWORK_NAME:-platform_data}
 
 volumes:
   postgres-data:

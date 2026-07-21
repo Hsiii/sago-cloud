@@ -108,8 +108,10 @@ disables root login and X11 forwarding, allows only the `ubuntu` account, and
 limits authentication attempts to three. The installer validates the complete
 sshd configuration before reloading the service.
 
-Keep TCP 22 restricted in the OCI security list to trusted source addresses or
-a private access network. TCP 80 and 443 remain public for Caddy.
+Administrative SSH uses Tailscale. Configure the local `platform` SSH alias to
+the VM's Tailscale MagicDNS name and confirm `ssh platform` succeeds before
+running deployment or maintenance commands. Do not expose TCP 22 in the OCI
+security list; TCP 80 and 443 remain public for Caddy.
 
 ## Secrets
 

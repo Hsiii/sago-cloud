@@ -43,6 +43,11 @@ assert_absent services/postgres/compose.yaml 'sago_cloud_edge'
 
 assert_contains services/minisago-worker/compose.yaml 'name: ${EDGE_NETWORK_NAME:-sago_cloud_edge}'
 assert_absent services/minisago-worker/compose.yaml 'sago_cloud_data'
+assert_contains services/minisago-worker/compose.yaml 'MINISAGO_WORKER_CAPABILITIES: chat,dev-read'
+assert_contains services/minisago-worker/compose.yaml 'MINISAGO_WORKER_CAPABILITIES: dev-write'
+assert_contains services/minisago-worker/compose.yaml 'minisago-github-read:/home/bun/.config/gh-read'
+assert_contains services/minisago-worker/compose.yaml 'minisago-github-write:/home/bun/.config/gh-write'
+assert_absent services/minisago-worker/compose.yaml 'minisago-github:/home/bun/.config/gh'
 
 assert_contains scripts/lib/common.sh 'NETWORK_NAMES=("$EDGE_NETWORK_NAME" "$DATA_NETWORK_NAME")'
 assert_contains scripts/lib/common.sh 'for network_name in "${NETWORK_NAMES[@]}"'

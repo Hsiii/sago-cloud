@@ -6,24 +6,42 @@ x-logging: &default-logging
     max-size: "10m"
     max-file: "3"
 
+x-worker: &worker
+  image: ghcr.io/hsiii/minisago-worker:${MINISAGO_WORKER_IMAGE_TAG:-main}
+  restart: unless-stopped
+  init: true
+  cpus: 1.25
+  mem_limit: 2g
+  logging: *default-logging
+  labels:
+    dev.hsichen.sago-cloud.managed: "true"
+  env_file:
+    - /srv/sago-cloud/secrets/minisago-worker.env
+  networks:
+    - frontend
+
 services:
-  worker:
-    image: ghcr.io/hsiii/minisago-worker:${MINISAGO_WORKER_IMAGE_TAG:-main}
-    restart: unless-stopped
-    init: true
-    cpus: 1.25
-    mem_limit: 2g
-    logging: *default-logging
-    labels:
-      dev.hsichen.sago-cloud.managed: "true"
-    env_file:
-      - /srv/sago-cloud/secrets/minisago-worker.env
-    networks:
-      - frontend
+  worker-read:
+    <<: *worker
+    environment:
+      MINISAGO_WORKER_ID: oracle-read
+      MINISAGO_WORKER_CAPABILITIES: chat,dev-read
     volumes:
       - minisago-codex:/home/bun/.codex
-      - minisago-github:/home/bun/.config/gh
-      - minisago-state:/var/lib/minisago
+      - minisago-github-read:/home/bun/.config/gh-read
+      - minisago-state-read:/var/lib/minisago
+      - minisago-workspace:/workspace
+
+  worker-write:
+    <<: *worker
+    environment:
+      MINISAGO_WORKER_ID: oracle-write
+      MINISAGO_WORKER_CAPABILITIES: dev-write
+      MINISAGO_MAX_CONCURRENT_JOBS: 1
+    volumes:
+      - minisago-codex:/home/bun/.codex
+      - minisago-github-write:/home/bun/.config/gh-write
+      - minisago-state-write:/var/lib/minisago
       - minisago-workspace:/workspace
 
 networks:
@@ -35,12 +53,18 @@ volumes:
   minisago-codex:
     external: true
     name: sago_cloud_minisago-codex
-  minisago-github:
+  minisago-github-read:
     external: true
-    name: sago_cloud_minisago-github
-  minisago-state:
+    name: sago_cloud_minisago-github-read
+  minisago-github-write:
     external: true
-    name: sago_cloud_minisago-state
+    name: sago_cloud_minisago-github-write
+  minisago-state-read:
+    external: true
+    name: sago_cloud_minisago-state-read
+  minisago-state-write:
+    external: true
+    name: sago_cloud_minisago-state-write
   minisago-workspace:
     external: true
     name: sago_cloud_minisago-workspace

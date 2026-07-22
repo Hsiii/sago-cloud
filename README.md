@@ -46,7 +46,8 @@ to the external `sago_cloud_data` network:
   separately so merging its definition cannot cut over live traffic.
 - `bot-core`: the current Discord bot runtime, published by MiniSago.
 - `minisago-worker`: the always-on Luna/Sol Codex worker.
-- `homepage`: the multi-platform Homepage image.
+- `homepage`: the multi-platform Homepage image, attached to both networks after
+  its migration job succeeds.
 - `obi`: CouchDB for Obsidian LiveSync.
 - `postgres`: private PostgreSQL, isolated from the public-service network.
 
@@ -56,9 +57,10 @@ neutral bot route, and `/` routes to `bot-core`.
 The co-located worker reaches `bot-core` through its private frontend-network
 alias. This avoids relying on public-IP hairpin routing from the A1 VM.
 
-No current service is configured to use the local PostgreSQL alias. A future
-database client must be explicitly attached to `sago_cloud_data`; it should keep
-its separate `sago_cloud_edge` attachment only when Caddy also needs to reach it.
+Homepage is the only public service configured to use the local PostgreSQL
+alias. Its one-shot migration container attaches only to `sago_cloud_data`; the
+application attaches separately to `sago_cloud_data` for PostgreSQL and
+`sago_cloud_edge` for Caddy. Other public services remain off the data network.
 
 ## Images
 

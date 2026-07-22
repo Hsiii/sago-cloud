@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "${SAGO_CLOUD_MIGRATION_CONFIRMED:-}" != "yes" ]]; then
+  printf 'Set SAGO_CLOUD_MIGRATION_CONFIRMED=yes to migrate the live runtime.\n' >&2
+  exit 1
+fi
+
+old_root="${LEGACY_PLATFORM_ROOT:-/srv/platform}"
+new_root="${SAGO_CLOUD_ROOT:-/srv/sago-cloud}"
+old_operations="$old_root/operations"
+new_operations="$new_root/operations"
+
+if [[ "$old_root" == "$new_root" || "$old_root" != /srv/* || "$new_root" != /srv/* ]]; then
+  printf 'Refusing unsafe runtime roots: %s -> %s\n' "$old_root" "$new_root" >&2
+  exit 1
+fi
+
+if [[ ! -d "$old_operations/.git" ]]; then
+  printf 'Expected the live operations checkout at %s.\n' "$old_operations" >&2
+  exit 1
+fi
+
+if [[ -e "$new_root" ]]; then
+  printf 'Target runtime root already exists: %s\n' "$new_root" >&2
+  exit 1
+fi
+
+if [[ "$(id -u)" -eq 0 ]]; then
+  SUDO=()
+else
+  SUDO=(sudo -n)
+fi
+
+if docker info >/dev/null 2>&1; then
+  DOCKER=(docker)
+else
+  DOCKER=(sudo -n docker)
+fi
+
+volume_mappings=(
+  platform_caddy-data:sago_cloud_caddy-data
+  platform_caddy-config:sago_cloud_caddy-config
+  platform_bot-core-state:sago_cloud_bot-core-state
+  platform_postgres-data:sago_cloud_postgres-data
+  platform_obi-data:sago_cloud_obi-data
+  platform_obi-config:sago_cloud_obi-config
+  platform_minisago-codex:sago_cloud_minisago-codex
+  platform_minisago-github:sago_cloud_minisago-github
+  platform_minisago-state:sago_cloud_minisago-state
+  platform_minisago-workspace:sago_cloud_minisago-workspace
+)
+
+copy_volume() {
+  local source_name="$1"
+  local target_name="$2"
+
+  "${DOCKER[@]}" volume inspect "$source_name" >/dev/null
+  "${DOCKER[@]}" volume create "$target_name" >/dev/null
+
+  if [[ -n "$("${DOCKER[@]}" run --rm -v "$target_name:/target:ro" alpine:3.21 sh -c 'find /target -mindepth 1 -maxdepth 1 -print -quit')" ]]; then
+    printf 'Target volume is not empty: %s\n' "$target_name" >&2
+    exit 1
+  fi
+
+  "${DOCKER[@]}" run --rm \
+    -v "$source_name:/source:ro" \
+    -v "$target_name:/target" \
+    alpine:3.21 sh -c 'cp -a /source/. /target/'
+}
+
+printf 'Creating a final PostgreSQL backup.\n'
+"$old_root/jobs/postgres/backup"
+
+printf 'Stopping legacy Compose projects.\n'
+mapfile -t legacy_containers < <(
+  "${DOCKER[@]}" ps -aq --filter label=dev.hsichen.platform.managed=true
+)
+if ((${#legacy_containers[@]})); then
+  "${DOCKER[@]}" stop "${legacy_containers[@]}"
+  "${DOCKER[@]}" rm "${legacy_containers[@]}"
+fi
+
+"${SUDO[@]}" systemctl disable --now \
+  platform-health-watch.timer \
+  platform-postgres-backup.timer \
+  platform-postgres-restore-test.timer
+
+printf 'Moving the runtime root to %s.\n' "$new_root"
+"${SUDO[@]}" mv -- "$old_root" "$new_root"
+"${SUDO[@]}" ln -s -- "$new_root" "$old_root"
+
+for mapping in "${volume_mappings[@]}"; do
+  copy_volume "${mapping%%:*}" "${mapping#*:}"
+done
+
+OPERATIONS_ROOT="$new_operations" SAGO_CLOUD_ROOT="$new_root" \
+  "$new_operations/scripts/install-layout"
+OPERATIONS_ROOT="$new_operations" SAGO_CLOUD_ROOT="$new_root" \
+  "$new_operations/scripts/deploy-all"
+OPERATIONS_ROOT="$new_operations" SAGO_CLOUD_ROOT="$new_root" \
+  "$new_operations/scripts/install-health-watch-timer"
+OPERATIONS_ROOT="$new_operations" SAGO_CLOUD_ROOT="$new_root" \
+  "$new_operations/scripts/install-postgres-backup-timers"
+
+"${SUDO[@]}" rm -f -- \
+  /etc/systemd/system/platform-health-watch.service \
+  /etc/systemd/system/platform-health-watch.timer \
+  /etc/systemd/system/platform-postgres-backup.service \
+  /etc/systemd/system/platform-postgres-backup.timer \
+  /etc/systemd/system/platform-postgres-restore-test.service \
+  /etc/systemd/system/platform-postgres-restore-test.timer
+"${SUDO[@]}" systemctl daemon-reload
+
+printf 'Sago Cloud is running. The %s compatibility symlink and legacy Docker volumes remain for rollback.\n' "$old_root"

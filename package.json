@@ -1,5 +1,5 @@
 {
-  "name": "platform-infra",
+  "name": "sago-cloud-infra",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,16 +12,18 @@
     "deploy:obi": "bun scripts/deploy.mjs obi",
     "deploy:homepage": "bun scripts/deploy.mjs homepage",
     "deploy:postgres": "bun scripts/deploy.mjs postgres",
-    "backup:postgres": "ssh platform /srv/platform/jobs/postgres/backup",
-    "restore:postgres": "ssh platform /srv/platform/jobs/postgres/restore",
-    "verify:postgres-backup": "ssh platform /srv/platform/jobs/postgres/verify-backup",
-    "install:postgres-backups": "ssh platform /srv/platform/operations/scripts/install-postgres-backup-timers",
-    "install:health-watch": "ssh platform /srv/platform/operations/scripts/install-health-watch-timer",
-    "install:ssh-hardening": "ssh platform /srv/platform/operations/scripts/install-ssh-hardening",
-    "test": "bun run test:security && bash tests/deployment-boundary && bash tests/recipes-retired",
+    "backup:postgres": "ssh sago-cloud /srv/sago-cloud/jobs/postgres/backup",
+    "restore:postgres": "ssh sago-cloud /srv/sago-cloud/jobs/postgres/restore",
+    "verify:postgres-backup": "ssh sago-cloud /srv/sago-cloud/jobs/postgres/verify-backup",
+    "install:postgres-backups": "ssh sago-cloud /srv/sago-cloud/operations/scripts/install-postgres-backup-timers",
+    "install:health-watch": "ssh sago-cloud /srv/sago-cloud/operations/scripts/install-health-watch-timer",
+    "install:ssh-hardening": "ssh sago-cloud /srv/sago-cloud/operations/scripts/install-ssh-hardening",
+    "migrate:sago-cloud": "ssh sago-cloud 'SAGO_CLOUD_MIGRATION_CONFIRMED=yes /srv/platform/operations/scripts/migrate-sago-cloud'",
+    "rename:sago-cloud-host": "ssh sago-cloud 'SAGO_CLOUD_HOST_RENAME_CONFIRMED=yes /srv/sago-cloud/operations/scripts/rename-sago-cloud-host'",
+    "test": "bun run test:security && bash tests/deployment-boundary && bash tests/recipes-retired && bash tests/sago-cloud-migration",
     "test:security": "bun run test:security:root && bun run test:security:network",
     "test:security:network": "bash tests/network-segmentation",
     "test:security:root": "bash tests/root-health-watch-boundary",
-    "status": "ssh platform /srv/platform/operations/scripts/status"
+    "status": "ssh sago-cloud /srv/sago-cloud/operations/scripts/status"
   }
 }

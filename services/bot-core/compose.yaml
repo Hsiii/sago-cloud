@@ -1,4 +1,4 @@
-name: platform-bot-core
+name: sago-cloud-bot-core
 
 x-logging: &default-logging
   driver: json-file
@@ -14,9 +14,9 @@ services:
     mem_limit: 256m
     logging: *default-logging
     labels:
-      dev.hsichen.platform.managed: "true"
+      dev.hsichen.sago-cloud.managed: "true"
     env_file:
-      - /srv/platform/secrets/bot-core.env
+      - /srv/sago-cloud/secrets/bot-core.env
     environment:
       GAMER_FORUM_STATE_FILE: /app/state/gamer-forum-state.json
       X_POST_STATE_FILE: /app/state/x-post-state.json
@@ -38,9 +38,9 @@ services:
 networks:
   frontend:
     external: true
-    name: ${EDGE_NETWORK_NAME:-platform_edge}
+    name: ${EDGE_NETWORK_NAME:-sago_cloud_edge}
 
 volumes:
   bot-core-state:
     external: true
-    name: platform_bot-core-state
+    name: sago_cloud_bot-core-state

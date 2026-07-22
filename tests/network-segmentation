@@ -31,15 +31,15 @@ frontend_files=(
 )
 
 for compose_file in "${frontend_files[@]}"; do
-  assert_contains "$compose_file" 'name: ${EDGE_NETWORK_NAME:-platform_edge}'
-  assert_absent "$compose_file" 'platform_data'
+  assert_contains "$compose_file" 'name: ${EDGE_NETWORK_NAME:-sago_cloud_edge}'
+  assert_absent "$compose_file" 'sago_cloud_data'
 done
 
-assert_contains services/postgres/compose.yaml 'name: ${DATA_NETWORK_NAME:-platform_data}'
-assert_absent services/postgres/compose.yaml 'platform_edge'
+assert_contains services/postgres/compose.yaml 'name: ${DATA_NETWORK_NAME:-sago_cloud_data}'
+assert_absent services/postgres/compose.yaml 'sago_cloud_edge'
 
-assert_contains services/minisago-worker/compose.yaml 'name: ${EDGE_NETWORK_NAME:-platform_edge}'
-assert_absent services/minisago-worker/compose.yaml 'platform_data'
+assert_contains services/minisago-worker/compose.yaml 'name: ${EDGE_NETWORK_NAME:-sago_cloud_edge}'
+assert_absent services/minisago-worker/compose.yaml 'sago_cloud_data'
 
 assert_contains scripts/lib/common.sh 'NETWORK_NAMES=("$EDGE_NETWORK_NAME" "$DATA_NETWORK_NAME")'
 assert_contains scripts/lib/common.sh 'for network_name in "${NETWORK_NAMES[@]}"'

@@ -1,4 +1,4 @@
-name: platform-homepage
+name: sago-cloud-homepage
 
 x-logging: &default-logging
   driver: json-file
@@ -14,9 +14,9 @@ services:
     mem_limit: 512m
     logging: *default-logging
     labels:
-      dev.hsichen.platform.managed: "true"
+      dev.hsichen.sago-cloud.managed: "true"
     env_file:
-      - /srv/platform/secrets/homepage.env
+      - /srv/sago-cloud/secrets/homepage.env
     healthcheck:
       test:
         - CMD-SHELL
@@ -33,4 +33,4 @@ services:
 networks:
   frontend:
     external: true
-    name: ${EDGE_NETWORK_NAME:-platform_edge}
+    name: ${EDGE_NETWORK_NAME:-sago_cloud_edge}

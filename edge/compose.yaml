@@ -1,4 +1,4 @@
-name: platform-edge
+name: sago-cloud-edge
 
 x-logging: &default-logging
   driver: json-file
@@ -14,9 +14,9 @@ services:
     mem_limit: 128m
     logging: *default-logging
     labels:
-      dev.hsichen.platform.managed: "true"
+      dev.hsichen.sago-cloud.managed: "true"
     env_file:
-      - /srv/platform/secrets/proxy.env
+      - /srv/sago-cloud/secrets/proxy.env
     ports:
       - "80:80"
       - "443:443"
@@ -33,12 +33,12 @@ services:
 networks:
   frontend:
     external: true
-    name: ${EDGE_NETWORK_NAME:-platform_edge}
+    name: ${EDGE_NETWORK_NAME:-sago_cloud_edge}
 
 volumes:
   caddy-data:
     external: true
-    name: platform_caddy-data
+    name: sago_cloud_caddy-data
   caddy-config:
     external: true
-    name: platform_caddy-config
+    name: sago_cloud_caddy-config

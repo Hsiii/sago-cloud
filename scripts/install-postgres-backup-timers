@@ -10,10 +10,10 @@ else
 fi
 
 units=(
-  platform-postgres-backup.service
-  platform-postgres-backup.timer
-  platform-postgres-restore-test.service
-  platform-postgres-restore-test.timer
+  sago-cloud-postgres-backup.service
+  sago-cloud-postgres-backup.timer
+  sago-cloud-postgres-restore-test.service
+  sago-cloud-postgres-restore-test.timer
 )
 
 for unit in "${units[@]}"; do
@@ -25,9 +25,9 @@ done
   "$BACKUPS_ROOT/postgres"
 "${SUDO[@]}" systemctl daemon-reload
 "${SUDO[@]}" systemctl enable --now \
-  platform-postgres-backup.timer \
-  platform-postgres-restore-test.timer
+  sago-cloud-postgres-backup.timer \
+  sago-cloud-postgres-restore-test.timer
 "${SUDO[@]}" systemctl list-timers \
-  platform-postgres-backup.timer \
-  platform-postgres-restore-test.timer \
+  sago-cloud-postgres-backup.timer \
+  sago-cloud-postgres-restore-test.timer \
   --no-pager

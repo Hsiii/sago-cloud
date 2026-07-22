@@ -1,12 +1,12 @@
 [Unit]
-Description=Test restoring the latest platform PostgreSQL backup weekly
+Description=Test restoring the latest Sago Cloud PostgreSQL backup weekly
 
 [Timer]
 OnCalendar=Sun *-*-* 03:30:00 UTC
 RandomizedDelaySec=15min
 Persistent=true
 AccuracySec=1min
-Unit=platform-postgres-restore-test.service
+Unit=sago-cloud-postgres-restore-test.service
 
 [Install]
 WantedBy=timers.target

@@ -5,8 +5,8 @@ job_path="$(realpath "${BASH_SOURCE[0]}")"
 source "$(dirname -- "$job_path")/../../scripts/lib/common.sh"
 
 backup_dir="${POSTGRES_BACKUP_DIR:-"$BACKUPS_ROOT/postgres"}"
-verify_database="platform_backup_verify"
-container_archive="/tmp/platform-backup-verify.dump"
+verify_database="sago_cloud_backup_verify"
+container_archive="/tmp/sago-cloud-backup-verify.dump"
 latest_backup="$(find "$backup_dir" -maxdepth 1 -type f -name 'postgres-*.dump' -print \
   | sort | tail -n 1)"
 

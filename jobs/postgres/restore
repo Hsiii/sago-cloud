@@ -5,15 +5,15 @@ job_path="$(realpath "${BASH_SOURCE[0]}")"
 source "$(dirname -- "$job_path")/../../scripts/lib/common.sh"
 
 archive="${1:-}"
-container_archive="/tmp/platform-restore.dump"
+container_archive="/tmp/sago-cloud-restore.dump"
 
-if [[ "${PLATFORM_RESTORE_CONFIRMED:-}" != "yes" ]]; then
-  printf 'Set PLATFORM_RESTORE_CONFIRMED=yes to replace the target PostgreSQL database.\n' >&2
+if [[ "${SAGO_CLOUD_RESTORE_CONFIRMED:-}" != "yes" ]]; then
+  printf 'Set SAGO_CLOUD_RESTORE_CONFIRMED=yes to replace the target PostgreSQL database.\n' >&2
   exit 1
 fi
 
 if [[ ! -f "$archive" ]]; then
-  printf 'Usage: PLATFORM_RESTORE_CONFIRMED=yes %s BACKUP.dump\n' "$0" >&2
+  printf 'Usage: SAGO_CLOUD_RESTORE_CONFIRMED=yes %s BACKUP.dump\n' "$0" >&2
   exit 1
 fi
 

@@ -9,7 +9,7 @@ else
   SUDO=(sudo -n)
 fi
 
-target=/etc/ssh/sshd_config.d/90-platform-hardening.conf
+target=/etc/ssh/sshd_config.d/90-sago-cloud-hardening.conf
 temporary="$(mktemp)"
 previous="$(mktemp)"
 had_previous=false
@@ -19,7 +19,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-install -m 0644 "$OPERATIONS_ROOT/security/sshd-platform.conf" "$temporary"
+install -m 0644 "$OPERATIONS_ROOT/security/sshd-sago-cloud.conf" "$temporary"
 if "${SUDO[@]}" test -f "$target"; then
   "${SUDO[@]}" cp "$target" "$previous"
   had_previous=true

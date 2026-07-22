@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "${SAGO_CLOUD_HOST_RENAME_CONFIRMED:-}" != "yes" ]]; then
+  printf 'Set SAGO_CLOUD_HOST_RENAME_CONFIRMED=yes to rename this host.\n' >&2
+  exit 1
+fi
+
+if [[ "$(id -u)" -eq 0 ]]; then
+  SUDO=()
+else
+  SUDO=(sudo -n)
+fi
+
+"${SUDO[@]}" hostnamectl set-hostname sago-cloud
+"${SUDO[@]}" tailscale set --hostname=sago-cloud
+
+printf 'Linux hostname: %s\n' "$(hostnamectl --static)"
+"${SUDO[@]}" tailscale status --self

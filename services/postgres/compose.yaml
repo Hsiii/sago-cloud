@@ -1,4 +1,4 @@
-name: platform-postgres
+name: sago-cloud-postgres
 
 x-logging: &default-logging
   driver: json-file
@@ -15,9 +15,9 @@ services:
     shm_size: 128mb
     logging: *default-logging
     labels:
-      dev.hsichen.platform.managed: "true"
+      dev.hsichen.sago-cloud.managed: "true"
     env_file:
-      - /srv/platform/secrets/postgres.env
+      - /srv/sago-cloud/secrets/postgres.env
     environment:
       PGDATA: /var/lib/postgresql/data/pgdata
     healthcheck:
@@ -38,9 +38,9 @@ services:
 networks:
   data:
     external: true
-    name: ${DATA_NETWORK_NAME:-platform_data}
+    name: ${DATA_NETWORK_NAME:-sago_cloud_data}
 
 volumes:
   postgres-data:
     external: true
-    name: platform_postgres-data
+    name: sago_cloud_postgres-data

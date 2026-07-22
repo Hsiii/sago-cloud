@@ -10,7 +10,7 @@ fi
 
 mapfile -t container_ids < <(
   "${DOCKER[@]}" ps --all --quiet \
-    --filter label=com.docker.compose.project=platform-recipes
+    --filter label=com.docker.compose.project=sago-cloud-recipes
 )
 
 if (( ${#container_ids[@]} > 0 )); then

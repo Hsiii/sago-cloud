@@ -1,4 +1,4 @@
-name: platform-minisago-worker
+name: sago-cloud-minisago-worker
 
 x-logging: &default-logging
   driver: json-file
@@ -15,9 +15,9 @@ services:
     mem_limit: 2g
     logging: *default-logging
     labels:
-      dev.hsichen.platform.managed: "true"
+      dev.hsichen.sago-cloud.managed: "true"
     env_file:
-      - /srv/platform/secrets/minisago-worker.env
+      - /srv/sago-cloud/secrets/minisago-worker.env
     networks:
       - frontend
     volumes:
@@ -29,18 +29,18 @@ services:
 networks:
   frontend:
     external: true
-    name: ${EDGE_NETWORK_NAME:-platform_edge}
+    name: ${EDGE_NETWORK_NAME:-sago_cloud_edge}
 
 volumes:
   minisago-codex:
     external: true
-    name: platform_minisago-codex
+    name: sago_cloud_minisago-codex
   minisago-github:
     external: true
-    name: platform_minisago-github
+    name: sago_cloud_minisago-github
   minisago-state:
     external: true
-    name: platform_minisago-state
+    name: sago_cloud_minisago-state
   minisago-workspace:
     external: true
-    name: platform_minisago-workspace
+    name: sago_cloud_minisago-workspace

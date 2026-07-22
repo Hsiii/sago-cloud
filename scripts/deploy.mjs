@@ -12,9 +12,9 @@ const allowedServices = new Set([
   "homepage",
   "postgres",
 ]);
-const remoteHost = process.env.PLATFORM_HOST ?? "platform";
+const remoteHost = process.env.SAGO_CLOUD_HOST ?? "sago-cloud";
 const remoteDeployRoot =
-  process.env.PLATFORM_OPERATIONS_ROOT ?? "/srv/platform/operations";
+  process.env.SAGO_CLOUD_OPERATIONS_ROOT ?? "/srv/sago-cloud/operations";
 
 const deployTargets = {
   proxy: "edge",

@@ -3,13 +3,13 @@ set -euo pipefail
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
 
-install -d -m 0755 "$PLATFORM_ROOT"
+install -d -m 0755 "$SAGO_CLOUD_ROOT"
 install -d -m 0700 "$SECRETS_ROOT" "$BACKUPS_ROOT"
 install -d -m 0755 "$STATE_ROOT"
 
-ln -sfn "$OPERATIONS_ROOT/edge" "$PLATFORM_ROOT/edge"
-ln -sfn "$OPERATIONS_ROOT/services" "$PLATFORM_ROOT/services"
-ln -sfn "$OPERATIONS_ROOT/jobs" "$PLATFORM_ROOT/jobs"
+ln -sfn "$OPERATIONS_ROOT/edge" "$SAGO_CLOUD_ROOT/edge"
+ln -sfn "$OPERATIONS_ROOT/services" "$SAGO_CLOUD_ROOT/services"
+ln -sfn "$OPERATIONS_ROOT/jobs" "$SAGO_CLOUD_ROOT/jobs"
 
 ensure_docker_networks
 ensure_docker_volumes

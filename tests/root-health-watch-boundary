@@ -2,19 +2,19 @@
 set -euo pipefail
 
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-service_file="$repo_root/systemd/platform-health-watch.service"
+service_file="$repo_root/systemd/sago-cloud-health-watch.service"
 installer="$repo_root/scripts/install-health-watch-timer"
 watcher="$repo_root/scripts/restart-unhealthy-services"
 
-installed_exec=/usr/local/libexec/platform-health-watch/current/scripts/restart-unhealthy-services
+installed_exec=/usr/local/libexec/sago-cloud-health-watch/current/scripts/restart-unhealthy-services
 
 grep -Fqx "ExecStart=$installed_exec" "$service_file"
-if grep -Eq '^ExecStart=/srv/platform/operations(?:/|$)' "$service_file"; then
+if grep -Eq '^ExecStart=/srv/sago-cloud/operations(?:/|$)' "$service_file"; then
   printf 'health watcher still executes deployment-checkout code\n' >&2
   exit 1
 fi
 
-grep -Fq 'INSTALL_ROOT="${INSTALL_ROOT:-/usr/local/libexec/platform-health-watch}"' "$installer"
+grep -Fq 'INSTALL_ROOT="${INSTALL_ROOT:-/usr/local/libexec/sago-cloud-health-watch}"' "$installer"
 grep -Fq 'scripts/restart-unhealthy-services' "$installer"
 grep -Fq 'scripts/lib/common.sh' "$installer"
 grep -Fq 'mv -Tf "$activation_dir/current" "$INSTALL_ROOT/current"' "$installer"

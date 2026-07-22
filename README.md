@@ -1,13 +1,13 @@
-# Platform Operations
+# Sago Cloud Operations
 
-Runtime wiring for the shared Oracle compute host. Platform resources are named
+Runtime wiring for the shared Oracle compute host. Sago Cloud resources are named
 by role so applications can be renamed, replaced, or split without changing the
 host, edge network, deployment tooling, or backup layout.
 
 ## Host Layout
 
 ```text
-/srv/platform/
+/srv/sago-cloud/
   operations/          # this repository
   edge/                 # symlink to operations/edge
   services/             # symlink to operations/services
@@ -19,15 +19,27 @@ host, edge network, deployment tooling, or backup layout.
 ```
 
 Run `scripts/install-layout` after cloning this repository to
-`/srv/platform/operations`. It creates the runtime links, the `platform_edge`
-frontend network, the isolated `platform_data` database network, and external
+`/srv/sago-cloud/operations`. It creates the runtime links, the `sago_cloud_edge`
+frontend network, the isolated `sago_cloud_data` database network, and external
 volumes.
+
+Hosts using the legacy `/srv/platform` namespace can run
+`SAGO_CLOUD_MIGRATION_CONFIRMED=yes scripts/migrate-sago-cloud`. The migration
+creates a final PostgreSQL backup, stops the old stacks, moves the runtime root,
+copies persistent volumes into the Sago Cloud namespace, and starts the renamed
+stacks and timers. It retains a `/srv/platform` compatibility symlink and the
+old volumes for rollback until the post-cutover cleanup.
+
+After the runtime is healthy, run
+`SAGO_CLOUD_HOST_RENAME_CONFIRMED=yes scripts/rename-sago-cloud-host` on the VM
+to align its Linux and Tailscale hostnames. Rename the OCI instance display name
+separately in Oracle Cloud; changing it does not alter the instance OCID.
 
 ## Runtime Stacks
 
 Each workload is an independent Docker Compose project. Public services attach
-to the external `platform_edge` frontend network, while PostgreSQL attaches only
-to the external `platform_data` network:
+to the external `sago_cloud_edge` frontend network, while PostgreSQL attaches only
+to the external `sago_cloud_data` network:
 
 - `edge`: Caddy and public TLS routing.
 - `bot-core`: the current Discord bot runtime, published by MiniSago.
@@ -43,8 +55,8 @@ The co-located worker reaches `bot-core` through its private frontend-network
 alias. This avoids relying on public-IP hairpin routing from the A1 VM.
 
 No current service is configured to use the local PostgreSQL alias. A future
-database client must be explicitly attached to `platform_data`; it should keep
-its separate `platform_edge` attachment only when Caddy also needs to reach it.
+database client must be explicitly attached to `sago_cloud_data`; it should keep
+its separate `sago_cloud_edge` attachment only when Caddy also needs to reach it.
 
 ## Images
 
@@ -88,8 +100,8 @@ remains for the previous `proxy` command name.
 One-shot work is separate from service definitions:
 
 ```text
-/srv/platform/jobs/postgres/backup
-/srv/platform/jobs/postgres/verify-backup
+/srv/sago-cloud/jobs/postgres/backup
+/srv/sago-cloud/jobs/postgres/verify-backup
 ```
 
 Install or refresh systemd units after changing the operations checkout:
@@ -101,12 +113,12 @@ scripts/install-postgres-backup-timers
 
 The health-watch installer copies the watcher and its shell dependency into a
 content-addressed, root-owned release under
-`/usr/local/libexec/platform-health-watch`, then atomically activates that
+`/usr/local/libexec/sago-cloud-health-watch`, then atomically activates that
 release. Updating the operations checkout does not change the code executed by
 the root service until this explicit installation step succeeds.
 
 The health watcher finds managed containers using the
-`dev.hsichen.platform.managed=true` label, so it works across independent
+`dev.hsichen.sago-cloud.managed=true` label, so it works across independent
 Compose projects.
 
 ## Host Access
@@ -116,15 +128,15 @@ disables root login and X11 forwarding, allows only the `ubuntu` account, and
 limits authentication attempts to three. The installer validates the complete
 sshd configuration before reloading the service.
 
-Administrative SSH uses Tailscale. Configure the local `platform` SSH alias to
-the VM's Tailscale MagicDNS name and confirm `ssh platform` succeeds before
+Administrative SSH uses Tailscale. Configure the local `sago-cloud` SSH alias to
+the VM's Tailscale MagicDNS name and confirm `ssh sago-cloud` succeeds before
 running deployment or maintenance commands. Do not expose TCP 22 in the OCI
 security list; TCP 80 and 443 remain public for Caddy.
 
 ## Secrets
 
 Create production files from `env/*.env.example` under
-`/srv/platform/secrets`. Expected files are:
+`/srv/sago-cloud/secrets`. Expected files are:
 
 ```text
 proxy.env
@@ -137,10 +149,10 @@ postgres.env
 
 Container logs rotate at 10 MB with three files retained per service. PostgreSQL
 backups retain seven daily dumps and four weekly dumps under
-`/srv/platform/backups/postgres`.
+`/srv/sago-cloud/backups/postgres`.
 
 ## ARM migration
 
 Follow [ARM Migration](ARM-MIGRATION.md) to provision the A1 host, export and
-restore persistent state, rehearse the platform, cut over DNS and Obsidian, and
+restore persistent state, rehearse Sago Cloud, cut over DNS and Obsidian, and
 retain the x86 hosts for rollback before retirement.

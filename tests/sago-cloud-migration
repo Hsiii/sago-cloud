@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+common="$repo_root/scripts/lib/common.sh"
+migration="$repo_root/scripts/migrate-sago-cloud"
+
+legacy_volumes=(
+  platform_caddy-data
+  platform_caddy-config
+  platform_bot-core-state
+  platform_postgres-data
+  platform_obi-data
+  platform_obi-config
+  platform_minisago-codex
+  platform_minisago-github
+  platform_minisago-state
+  platform_minisago-workspace
+)
+
+for legacy_volume in "${legacy_volumes[@]}"; do
+  cloud_volume="${legacy_volume/platform_/sago_cloud_}"
+  grep -Fqx "  $cloud_volume" "$common"
+  grep -Fqx "  $legacy_volume:$cloud_volume" "$migration"
+done
+
+grep -Fq 'ln -s -- "$new_root" "$old_root"' "$migration"
+grep -Fq 'dev.hsichen.platform.managed=true' "$migration"
+grep -Fq 'dev.hsichen.sago-cloud.managed' "$repo_root/edge/compose.yaml"
+
+printf 'Sago Cloud migration preserves every legacy persistent volume\n'

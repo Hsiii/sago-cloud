@@ -1,6 +1,6 @@
 # ARM Migration
 
-The migration consolidates `oracle-platform` and `oracle-obi` onto a fresh OCI
+The migration consolidated the legacy `oracle-platform` and `oracle-obi` hosts onto a fresh OCI
 Ampere A1 host. Keep both x86 hosts running until the ARM rehearsal passes, then
 keep them stopped and intact during the rollback window.
 
@@ -10,7 +10,7 @@ Merge and publish these application changes before provisioning:
 
 - MiniSago core and worker images for `linux/amd64` and `linux/arm64`.
 - Homepage image for `linux/amd64` and `linux/arm64`.
-- This platform release with the managed worker, Homepage image, and OBI stack.
+- This Sago Cloud release with the managed worker, Homepage image, and OBI stack.
 
 Recipes is intentionally retired. Export `recipe-site_uploads` once for archival
 purposes, but do not restore or start the service on ARM.
@@ -31,7 +31,7 @@ Only then create an Ubuntu AArch64 `VM.Standard.A1.Flex` instance in the home
 region with 2 OCPUs, 4 GB RAM, and a 50 GB boot volume. Use the existing VCN,
 restrict temporary SSH to the administrator, install Docker Engine with the
 Compose plugin, join Tailscale, and clone this repository to
-`/srv/platform/operations`.
+`/srv/sago-cloud/operations`.
 
 Run `scripts/install-layout`, install the health and PostgreSQL timers, apply
 SSH hardening after Tailscale access works, and authenticate Docker for the
@@ -40,21 +40,21 @@ private GHCR images.
 ## 3. Export source state
 
 Create a mode-0700 migration directory outside the repositories. Run the
-PostgreSQL backup job and copy its latest verified dump. Export these platform
+PostgreSQL backup job and copy its latest verified dump. Export these Sago Cloud
 volumes with `scripts/export-volume`:
 
 ```text
-platform_caddy-data
-platform_caddy-config
-platform_bot-core-state
+sago_cloud_caddy-data
+sago_cloud_caddy-config
+sago_cloud_bot-core-state
 source_minisago-codex
 source_minisago-github
 source_minisago-state
 recipe-site_uploads
 ```
 
-Archive `/srv/platform/state/minisago-worker/source/workspace` separately for
-the new `platform_minisago-workspace` volume. Copy `/srv/platform/secrets` over
+Archive `/srv/sago-cloud/state/minisago-worker/source/workspace` separately for
+the new `sago_cloud_minisago-workspace` volume. Copy `/srv/sago-cloud/secrets` over
 an encrypted Tailscale/SSH connection without printing its contents. Copy
 `/srv/videos` as well when it contains files; the retired Homepage host artifact
 does not need to migrate.
@@ -72,25 +72,25 @@ obtains and stores the replacement certificate.
 ## 4. Restore and rehearse
 
 Copy the encrypted migration directory to the ARM host. Restore volume archives
-with `PLATFORM_RESTORE_CONFIRMED=yes scripts/import-volume`, using this mapping:
+with `SAGO_CLOUD_RESTORE_CONFIRMED=yes scripts/import-volume`, using this mapping:
 
 | Source                    | ARM target                    |
 | ------------------------- | ----------------------------- |
-| `platform_caddy-data`     | `platform_caddy-data`         |
-| `platform_caddy-config`   | `platform_caddy-config`       |
-| `platform_bot-core-state` | `platform_bot-core-state`     |
-| `source_minisago-codex`   | `platform_minisago-codex`     |
-| `source_minisago-github`  | `platform_minisago-github`    |
-| `source_minisago-state`   | `platform_minisago-state`     |
-| worker workspace archive  | `platform_minisago-workspace` |
-| `obi-sync_couchdb-data`   | `platform_obi-data`           |
-| `obi-sync_couchdb-config` | `platform_obi-config`         |
+| `sago_cloud_caddy-data`     | `sago_cloud_caddy-data`         |
+| `sago_cloud_caddy-config`   | `sago_cloud_caddy-config`       |
+| `sago_cloud_bot-core-state` | `sago_cloud_bot-core-state`     |
+| `source_minisago-codex`   | `sago_cloud_minisago-codex`     |
+| `source_minisago-github`  | `sago_cloud_minisago-github`    |
+| `source_minisago-state`   | `sago_cloud_minisago-state`     |
+| worker workspace archive  | `sago_cloud_minisago-workspace` |
+| `obi-sync_couchdb-data`   | `sago_cloud_obi-data`           |
+| `obi-sync_couchdb-config` | `sago_cloud_obi-config`         |
 
 Restore PostgreSQL from the verified logical dump rather than copying its data
 directory:
 
 ```bash
-PLATFORM_RESTORE_CONFIRMED=yes scripts/restore-postgres /path/to/postgres.dump
+SAGO_CLOUD_RESTORE_CONFIRMED=yes scripts/restore-postgres /path/to/postgres.dump
 ```
 
 Verify `codex login status` and `gh auth status` inside the worker;
@@ -108,10 +108,10 @@ Lower relevant DNS TTLs before the maintenance window. At cutover:
 
 1. Stop writes on the x86 services.
 2. Create a final PostgreSQL dump and final state/OBI exports.
-3. Run `RETIRE_RECIPES_CONFIRMED=yes scripts/retire-recipes` on the old platform
+3. Run `RETIRE_RECIPES_CONFIRMED=yes scripts/retire-recipes` on the old host
    after its uploads archive is safely off-host.
 4. Restore only the changed data on ARM and repeat health checks.
-5. Move the reserved public IP or update DNS for the platform, Homepage, and
+5. Move the reserved public IP or update DNS for Sago Cloud, Homepage, and
    `OBI_DOMAIN`.
 6. Change the Obsidian LiveSync endpoint to the new OBI hostname and verify a
    two-way sync before resuming normal use.

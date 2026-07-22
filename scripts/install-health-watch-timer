@@ -9,7 +9,7 @@ else
   SUDO=(sudo -n)
 fi
 
-INSTALL_ROOT="${INSTALL_ROOT:-/usr/local/libexec/platform-health-watch}"
+INSTALL_ROOT="${INSTALL_ROOT:-/usr/local/libexec/sago-cloud-health-watch}"
 release_root="$INSTALL_ROOT/releases"
 watcher_source="$OPERATIONS_ROOT/scripts/restart-unhealthy-services"
 library_source="$OPERATIONS_ROOT/scripts/lib/common.sh"
@@ -74,11 +74,11 @@ activation_dir=
 
 "${SUDO[@]}" install -d -o root -g root -m 0755 "$STATE_ROOT/health-watch"
 "${SUDO[@]}" install -m 0644 \
-  "$OPERATIONS_ROOT/systemd/platform-health-watch.service" \
-  /etc/systemd/system/platform-health-watch.service
+  "$OPERATIONS_ROOT/systemd/sago-cloud-health-watch.service" \
+  /etc/systemd/system/sago-cloud-health-watch.service
 "${SUDO[@]}" install -m 0644 \
-  "$OPERATIONS_ROOT/systemd/platform-health-watch.timer" \
-  /etc/systemd/system/platform-health-watch.timer
+  "$OPERATIONS_ROOT/systemd/sago-cloud-health-watch.timer" \
+  /etc/systemd/system/sago-cloud-health-watch.timer
 "${SUDO[@]}" systemctl daemon-reload
-"${SUDO[@]}" systemctl enable --now platform-health-watch.timer
-"${SUDO[@]}" systemctl status platform-health-watch.timer --no-pager
+"${SUDO[@]}" systemctl enable --now sago-cloud-health-watch.timer
+"${SUDO[@]}" systemctl status sago-cloud-health-watch.timer --no-pager

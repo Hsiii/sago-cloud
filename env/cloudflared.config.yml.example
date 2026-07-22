@@ -3,9 +3,15 @@ credentials-file: /etc/cloudflared/credentials.json
 
 ingress:
   - hostname: <homepage-hostname>
-    service: http://edge:80
+    service: https://edge:443
+    originRequest:
+      originServerName: <homepage-hostname>
   - hostname: <obi-hostname>
-    service: http://edge:80
+    service: https://edge:443
+    originRequest:
+      originServerName: <obi-hostname>
   - hostname: <bot-hostname>
-    service: http://edge:80
+    service: https://edge:443
+    originRequest:
+      originServerName: <bot-hostname>
   - service: http_status:404

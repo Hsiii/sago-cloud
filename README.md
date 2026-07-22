@@ -157,9 +157,21 @@ production DNS, Clerk callbacks, OBI connections, and public health checks pass.
 Create a locally managed Tunnel, then place its private files at
 `/srv/sago-cloud/secrets/cloudflared/config.yml` and
 `/srv/sago-cloud/secrets/cloudflared/credentials.json`. Start from the public
-config example and route each public hostname to `http://edge:80`;
+config example and route each public hostname to `https://edge:443`, setting
+`originServerName` to the matching public hostname so Caddy's certificate is
+verified;
 `cloudflared` and Caddy share the private frontend Docker network. No Tunnel
 identifier, credential, or provider token is stored in this repository.
+
+Keep the directory traversable by the host deploy user and the files readable
+only by the image's non-root user:
+
+```bash
+sudo chown ubuntu:65532 /srv/sago-cloud/secrets/cloudflared
+sudo chmod 0710 /srv/sago-cloud/secrets/cloudflared
+sudo chown 65532:65532 /srv/sago-cloud/secrets/cloudflared/{config.yml,credentials.json}
+sudo chmod 0600 /srv/sago-cloud/secrets/cloudflared/{config.yml,credentials.json}
+```
 
 Cache only immutable Homepage assets such as `/_next/static/*`. Explicitly
 bypass `/api/*`, authenticated HTML, session-bearing responses, and private

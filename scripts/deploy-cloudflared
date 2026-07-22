@@ -8,5 +8,13 @@ if [[ ! -s "$SECRETS_ROOT/cloudflared/config.yml" || ! -s "$SECRETS_ROOT/cloudfl
   exit 1
 fi
 
+for secret_file in config.yml credentials.json; do
+  secret_path="$SECRETS_ROOT/cloudflared/$secret_file"
+  if [[ "$(stat -c '%u:%a' "$secret_path")" != "65532:600" ]]; then
+    printf '%s must be owned by UID 65532 with mode 0600.\n' "$secret_path" >&2
+    exit 1
+  fi
+done
+
 compose_pull cloudflared
 compose_up cloudflared

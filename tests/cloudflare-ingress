@@ -20,5 +20,9 @@ if grep -Eq 'tunnel: [^<]' "$repo_root/env/cloudflared.config.yml.example"; then
 fi
 
 grep -Fq 'credentials-file: /etc/cloudflared/credentials.json' "$repo_root/env/cloudflared.config.yml.example"
+grep -Fq 'service: https://edge:443' "$repo_root/env/cloudflared.config.yml.example"
+grep -Fq 'originServerName:' "$repo_root/env/cloudflared.config.yml.example"
+grep -Fq "stat -c '%u:%a'" "$repo_root/scripts/deploy-cloudflared"
+grep -Fq '65532:600' "$repo_root/scripts/deploy-cloudflared"
 
 printf 'Cloudflare Tunnel service is public-safe and uses the private edge network\n'

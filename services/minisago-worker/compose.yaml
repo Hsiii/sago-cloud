@@ -30,7 +30,7 @@ services:
       - minisago-codex:/home/bun/.codex
       - minisago-github-read:/home/bun/.config/gh-read
       - minisago-state-read:/var/lib/minisago
-      - minisago-workspace:/workspace
+      - minisago-workspace-read:/workspace
 
   worker-write:
     <<: *worker
@@ -42,7 +42,7 @@ services:
       - minisago-codex:/home/bun/.codex
       - minisago-github-write:/home/bun/.config/gh-write
       - minisago-state-write:/var/lib/minisago
-      - minisago-workspace:/workspace
+      - minisago-workspace-write:/workspace
 
 networks:
   frontend:
@@ -65,6 +65,9 @@ volumes:
   minisago-state-write:
     external: true
     name: sago_cloud_minisago-state-write
-  minisago-workspace:
+  minisago-workspace-read:
     external: true
-    name: sago_cloud_minisago-workspace
+    name: sago_cloud_minisago-workspace-read
+  minisago-workspace-write:
+    external: true
+    name: sago_cloud_minisago-workspace-write

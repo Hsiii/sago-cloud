@@ -19,13 +19,12 @@ VOLUME_NAMES=(
   sago_cloud_obi-data
   sago_cloud_obi-config
   sago_cloud_minisago-codex
-  sago_cloud_minisago-github
   sago_cloud_minisago-github-read
   sago_cloud_minisago-github-write
-  sago_cloud_minisago-state
   sago_cloud_minisago-state-read
   sago_cloud_minisago-state-write
-  sago_cloud_minisago-workspace
+  sago_cloud_minisago-workspace-read
+  sago_cloud_minisago-workspace-write
 )
 
 export OPERATIONS_ROOT SAGO_CLOUD_ROOT SECRETS_ROOT BACKUPS_ROOT STATE_ROOT

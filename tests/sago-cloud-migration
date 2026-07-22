@@ -20,8 +20,12 @@ legacy_volumes=(
 
 for legacy_volume in "${legacy_volumes[@]}"; do
   cloud_volume="${legacy_volume/platform_/sago_cloud_}"
-  grep -Fqx "  $cloud_volume" "$common"
   grep -Fqx "  $legacy_volume:$cloud_volume" "$migration"
+
+  case "$cloud_volume" in
+    sago_cloud_minisago-github | sago_cloud_minisago-state | sago_cloud_minisago-workspace) ;;
+    *) grep -Fqx "  $cloud_volume" "$common" ;;
+  esac
 done
 
 grep -Fq 'ln -s -- "$new_root" "$old_root"' "$migration"

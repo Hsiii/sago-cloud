@@ -148,9 +148,8 @@ sshd configuration before reloading the service.
 Administrative SSH uses Tailscale. Configure the local `sago-cloud` SSH alias to
 the VM's Tailscale MagicDNS name and confirm `ssh sago-cloud` succeeds before
 running deployment or maintenance commands. Do not expose TCP 22 in the OCI
-security list. During the Cloudflare Tunnel transition, TCP 80 and 443 remain
-public for Caddy. Close both ports only after temporary Tunnel hostnames,
-production DNS, Clerk callbacks, OBI connections, and public health checks pass.
+security list. Caddy has no published host ports after the verified Cloudflare
+Tunnel cutover; `cloudflared` is its only public ingress path.
 
 ## Cloudflare ingress
 
@@ -187,9 +186,9 @@ OBI_URL=https://obi.example.com \
   scripts/verify-public-ingress
 ```
 
-After DNS is stable and direct HTTP/S ingress is closed, remove the `ports`
-mapping from `edge/compose.yaml` in the cutover PR. Keep Tailscale as the
-administrative path.
+Keep Tailscale as the administrative path and remove any now-redundant OCI
+ingress rules for TCP 80 and 443 after verifying the tunnel from an external
+network.
 
 ## Secrets
 

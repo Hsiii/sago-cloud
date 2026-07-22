@@ -15,14 +15,14 @@ x-worker: &worker
   logging: *default-logging
   labels:
     dev.hsichen.sago-cloud.managed: "true"
-  env_file:
-    - /srv/sago-cloud/secrets/minisago-worker.env
   networks:
     - frontend
 
 services:
   worker-read:
     <<: *worker
+    env_file:
+      - /srv/sago-cloud/secrets/minisago-worker-read.env
     environment:
       MINISAGO_WORKER_ID: oracle-read
       MINISAGO_WORKER_CAPABILITIES: chat,dev-read
@@ -34,6 +34,8 @@ services:
 
   worker-write:
     <<: *worker
+    env_file:
+      - /srv/sago-cloud/secrets/minisago-worker-write.env
     environment:
       MINISAGO_WORKER_ID: oracle-write
       MINISAGO_WORKER_CAPABILITIES: dev-write

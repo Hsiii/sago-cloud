@@ -47,7 +47,8 @@ to the external `sago_cloud_data` network:
 - `bot-core`: the current Discord bot runtime, published by MiniSago.
 - `minisago-worker`: separate always-on read and write Codex workers. The read
   worker serves Luna chat and read-only Sol jobs; the write worker accepts only
-  explicit owner mutations. Each mounts only its own repo-scoped GitHub login.
+  explicit owner mutations. Each mounts only its own repo-scoped GitHub login,
+  profile-bound broker secret, state, and workspace.
 - `homepage`: the multi-platform Homepage image, attached to both networks after
   its migration job succeeds.
 - `obi`: CouchDB for Obsidian LiveSync.
@@ -60,8 +61,10 @@ The co-located worker reaches `bot-core` through its private frontend-network
 alias. This avoids relying on public-IP hairpin routing from the A1 VM.
 
 The read and write workers share only Codex authentication. Each has separate
-GitHub, trace-state, and disposable-checkout volumes, and Codex restricts every
-job to its selected checkout. Do not copy the retired broad
+broker secrets, GitHub, trace-state, and disposable-checkout volumes. The
+broker binds those secrets to `oracle-read`/`chat,dev-read` and
+`oracle-write`/`dev-write`, while Codex restricts every job to its selected
+checkout. Do not copy the retired broad
 `sago_cloud_minisago-github` login into either volume; authenticate fresh
 fine-grained identities and retain the old broad volumes only for rollback
 until both capability rehearsals pass.
@@ -184,7 +187,8 @@ proxy.env
 cloudflared.env
 bot-core.env
 homepage.env
-minisago-worker.env
+minisago-worker-read.env
+minisago-worker-write.env
 obi.env
 postgres.env
 ```

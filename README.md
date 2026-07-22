@@ -45,7 +45,9 @@ to the external `sago_cloud_data` network:
 - `cloudflared`: optional outbound-only Cloudflare Tunnel ingress. It deploys
   separately so merging its definition cannot cut over live traffic.
 - `bot-core`: the current Discord bot runtime, published by MiniSago.
-- `minisago-worker`: the always-on Luna/Sol Codex worker.
+- `minisago-worker`: separate always-on read and write Codex workers. The read
+  worker serves Luna chat and read-only Sol jobs; the write worker accepts only
+  explicit owner mutations. Each mounts only its own repo-scoped GitHub login.
 - `homepage`: the multi-platform Homepage image, attached to both networks after
   its migration job succeeds.
 - `obi`: CouchDB for Obsidian LiveSync.
@@ -56,6 +58,12 @@ neutral bot route, and `/` routes to `bot-core`.
 
 The co-located worker reaches `bot-core` through its private frontend-network
 alias. This avoids relying on public-IP hairpin routing from the A1 VM.
+
+The read and write workers share Codex authentication and disposable job
+checkout storage, but use separate GitHub and trace-state volumes. Do not copy
+the retired broad `sago_cloud_minisago-github` login into either volume;
+authenticate fresh fine-grained identities and retain the old volume only for
+rollback until both capability rehearsals pass.
 
 Homepage is the only public service configured to use the local PostgreSQL
 alias. Its one-shot migration container attaches only to `sago_cloud_data`; the

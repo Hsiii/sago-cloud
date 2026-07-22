@@ -17,9 +17,6 @@ services:
       dev.hsichen.sago-cloud.managed: "true"
     env_file:
       - /srv/sago-cloud/secrets/proxy.env
-    ports:
-      - "80:80"
-      - "443:443"
     volumes:
       - ./:/etc/caddy:ro
       - /srv/videos:/srv/videos:ro

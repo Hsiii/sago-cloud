@@ -3,6 +3,7 @@ set -euo pipefail
 
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 compose="$repo_root/services/cloudflared/compose.yaml"
+edge_compose="$repo_root/edge/compose.yaml"
 
 grep -Fq 'cloudflare/cloudflared:2026.7.1' "$compose"
 grep -Fq '/srv/sago-cloud/secrets/cloudflared:/etc/cloudflared:ro' "$compose"
@@ -11,6 +12,11 @@ grep -Fq -- '--config /etc/cloudflared/config.yml run' "$compose"
 
 if grep -Eq '(^|[[:space:]])ports:' "$compose"; then
   printf 'cloudflared must not publish host ports\n' >&2
+  exit 1
+fi
+
+if grep -Eq '(^|[[:space:]])ports:' "$edge_compose"; then
+  printf 'Caddy origin must not publish host ports after Tunnel cutover\n' >&2
   exit 1
 fi
 

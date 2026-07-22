@@ -18,11 +18,18 @@ services:
       dev.hsichen.platform.managed: "true"
     env_file:
       - /srv/platform/secrets/minisago-worker.env
+    networks:
+      - frontend
     volumes:
       - minisago-codex:/home/bun/.codex
       - minisago-github:/home/bun/.config/gh
       - minisago-state:/var/lib/minisago
       - minisago-workspace:/workspace
+
+networks:
+  frontend:
+    external: true
+    name: ${EDGE_NETWORK_NAME:-platform_edge}
 
 volumes:
   minisago-codex:

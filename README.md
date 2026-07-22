@@ -39,6 +39,9 @@ to the external `platform_data` network:
 Caddy discovers services through role-based network aliases. `/bot/*` is the
 neutral bot route, and `/` routes to `bot-core`.
 
+The co-located worker reaches `bot-core` through its private frontend-network
+alias. This avoids relying on public-IP hairpin routing from the A1 VM.
+
 No current service is configured to use the local PostgreSQL alias. A future
 database client must be explicitly attached to `platform_data`; it should keep
 its separate `platform_edge` attachment only when Caddy also needs to reach it.

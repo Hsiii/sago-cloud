@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
+
+volume_name="${1:-}"
+destination="${2:-}"
+
+if [[ ! "$volume_name" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || [[ -z "$destination" ]]; then
+  printf 'Usage: %s VOLUME_NAME DESTINATION.tar.gz\n' "$0" >&2
+  exit 1
+fi
+
+if ! "${DOCKER[@]}" volume inspect "$volume_name" >/dev/null 2>&1; then
+  printf 'Docker volume does not exist: %s\n' "$volume_name" >&2
+  exit 1
+fi
+
+destination_dir="$(cd -- "$(dirname -- "$destination")" && pwd)"
+destination_name="$(basename -- "$destination")"
+
+"${DOCKER[@]}" run --rm \
+  --volume "$volume_name:/source:ro" \
+  --volume "$destination_dir:/backup" \
+  alpine:3.22 \
+  tar -C /source -czf "/backup/$destination_name" .
+
+if [[ ! -O "$destination" ]]; then
+  sudo -n chown "$(id -u):$(id -g)" "$destination"
+fi
+chmod 0600 "$destination"
+printf 'Exported %s to %s\n' "$volume_name" "$destination"

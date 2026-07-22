@@ -3,5 +3,5 @@ set -euo pipefail
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
 
-compose_pull recipes
-compose_up recipes
+compose_pull obi
+compose_up obi

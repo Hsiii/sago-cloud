@@ -9,6 +9,21 @@
 	reverse_proxy homepage:3102
 }
 
+{$OBI_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Referrer-Policy no-referrer
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		-Server
+	}
+
+	reverse_proxy obi:5984 {
+		flush_interval -1
+	}
+}
+
 {$DOMAIN} {
 	encode zstd gzip
 
@@ -18,16 +33,11 @@
 	}
 
 	redir /bot /bot/ 308
-	redir /recipe /recipe/ 308
 	redir /videos /videos/ 308
 
 	handle_path /videos/* {
 		root * /srv/videos
 		file_server
-	}
-
-	handle_path /recipe/* {
-		reverse_proxy recipes:3101
 	}
 
 	handle_path /bot/* {

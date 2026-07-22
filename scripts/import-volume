@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
+
+volume_name="${1:-}"
+archive="${2:-}"
+
+if [[ "${PLATFORM_RESTORE_CONFIRMED:-}" != "yes" ]]; then
+  printf 'Set PLATFORM_RESTORE_CONFIRMED=yes to replace a target volume.\n' >&2
+  exit 1
+fi
+
+if [[ ! "$volume_name" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || [[ ! -f "$archive" ]]; then
+  printf 'Usage: PLATFORM_RESTORE_CONFIRMED=yes %s VOLUME_NAME ARCHIVE.tar.gz\n' "$0" >&2
+  exit 1
+fi
+
+if [[ -n "$("${DOCKER[@]}" ps --quiet --filter "volume=$volume_name")" ]]; then
+  printf 'Stop containers using %s before restoring it.\n' "$volume_name" >&2
+  exit 1
+fi
+
+if ! "${DOCKER[@]}" volume inspect "$volume_name" >/dev/null 2>&1; then
+  "${DOCKER[@]}" volume create "$volume_name" >/dev/null
+fi
+
+archive_dir="$(cd -- "$(dirname -- "$archive")" && pwd)"
+archive_name="$(basename -- "$archive")"
+
+"${DOCKER[@]}" run --rm \
+  --volume "$archive_dir:/backup:ro" \
+  alpine:3.22 \
+  tar -tzf "/backup/$archive_name" >/dev/null
+
+"${DOCKER[@]}" run --rm \
+  --volume "$volume_name:/target" \
+  --volume "$archive_dir:/backup:ro" \
+  alpine:3.22 \
+  sh -ceu 'find /target -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +; tar -C /target -xzf "/backup/$1"' sh "$archive_name"
+
+printf 'Restored %s from %s\n' "$volume_name" "$archive"

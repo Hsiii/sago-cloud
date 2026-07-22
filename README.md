@@ -12,10 +12,10 @@ host, edge network, deployment tooling, or backup layout.
   edge/                 # symlink to operations/edge
   services/             # symlink to operations/services
   jobs/                 # symlink to operations/jobs
-  artifacts/            # uploaded runtime artifacts
   secrets/              # production env files, never committed
   backups/
   state/
+/srv/videos/              # optional static files served by Caddy
 ```
 
 Run `scripts/install-layout` after cloning this repository to
@@ -31,8 +31,9 @@ to the external `platform_data` network:
 
 - `edge`: Caddy and public TLS routing.
 - `bot-core`: the current Discord bot runtime, published by MiniSago.
-- `recipes`: the recipe archive.
-- `homepage`: the uploaded homepage artifact.
+- `minisago-worker`: the always-on Luna/Sol Codex worker.
+- `homepage`: the multi-platform Homepage image.
+- `obi`: CouchDB for Obsidian LiveSync.
 - `postgres`: private PostgreSQL, isolated from the public-service network.
 
 Caddy discovers services through role-based network aliases. `/bot/*` is the
@@ -44,12 +45,13 @@ its separate `platform_edge` attachment only when Caddy also needs to reach it.
 
 ## Images
 
-Application repositories build Linux AMD64 images in GitHub Actions and publish
-both `main` and immutable `sha-<commit>` tags:
+Application repositories build Linux AMD64 and ARM64 images in GitHub Actions
+and publish both `main` and immutable `sha-<commit>` tags:
 
 ```text
 ghcr.io/hsiii/minisago
-ghcr.io/hsiii/recipes
+ghcr.io/hsiii/minisago-worker
+ghcr.io/hsiii/homepage
 ```
 
 The VM only pulls images and starts containers; it does not clone or build
@@ -64,16 +66,19 @@ From this repository:
 bun run deploy:all
 bun run deploy:edge
 bun run deploy:bot-core
-bun run deploy:recipes
+bun run deploy:minisago
+bun run deploy:minisago-worker
 bun run deploy:homepage
+bun run deploy:obi
 bun run deploy:postgres
 bun run status
 ```
 
 The app repositories wait for their image workflow and then invoke the matching
-remote deploy command. Deploying this operations repository first fast-forwards
-the VM checkout, then runs the selected stack command. Compatibility shell
-wrappers remain for the previous `proxy` and `recipe` command names.
+remote deploy command. Deploying this operations repository never pushes code:
+it requires a clean local `main` that matches `origin/main`, fast-forwards the
+VM checkout, then runs the selected stack command. A compatibility wrapper
+remains for the previous `proxy` command name.
 
 ## Scheduled Jobs
 
@@ -121,11 +126,18 @@ Create production files from `env/*.env.example` under
 ```text
 proxy.env
 bot-core.env
-recipe.env
 homepage.env
+minisago-worker.env
+obi.env
 postgres.env
 ```
 
 Container logs rotate at 10 MB with three files retained per service. PostgreSQL
 backups retain seven daily dumps and four weekly dumps under
 `/srv/platform/backups/postgres`.
+
+## ARM migration
+
+Follow [ARM Migration](ARM-MIGRATION.md) to provision the A1 host, export and
+restore persistent state, rehearse the platform, cut over DNS and Obsidian, and
+retain the x86 hosts for rollback before retirement.

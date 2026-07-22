@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+
+test ! -e "$repo_root/services/recipes/compose.yaml"
+test ! -e "$repo_root/env/recipe.env.example"
+test ! -e "$repo_root/scripts/deploy-recipes"
+test ! -e "$repo_root/scripts/deploy-recipe"
+
+if grep -Fq '/recipe' "$repo_root/edge/Caddyfile"; then
+  printf 'Recipes route remains in Caddy\n' >&2
+  exit 1
+fi
+
+if grep -Eq 'STACKS=.*recipes' "$repo_root/scripts/lib/common.sh"; then
+  printf 'Recipes remains in the managed stack list\n' >&2
+  exit 1
+fi
+
+printf 'Recipes service and public route are retired\n'

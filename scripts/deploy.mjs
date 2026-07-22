@@ -5,9 +5,10 @@ const allowedServices = new Set([
   "all",
   "edge",
   "bot-core",
-  "recipes",
+  "minisago",
+  "minisago-worker",
+  "obi",
   "proxy",
-  "recipe",
   "homepage",
   "postgres",
 ]);
@@ -17,7 +18,6 @@ const remoteDeployRoot =
 
 const deployTargets = {
   proxy: "edge",
-  recipe: "recipes",
 };
 
 function output(command, args) {
@@ -51,7 +51,21 @@ if (output("git", ["status", "--porcelain"])) {
   process.exit(1);
 }
 
-run("git", ["push", "origin", branch]);
+const commit = output("git", ["rev-parse", "HEAD"]);
+const remoteCommit = output("git", [
+  "ls-remote",
+  "--exit-code",
+  "origin",
+  "refs/heads/main",
+]).split(/\s/u)[0];
+
+if (commit !== remoteCommit) {
+  console.error(
+    "Local main does not match origin/main. Merge changes through a PR, then update local main before deploying. This script never pushes code.",
+  );
+  process.exit(1);
+}
+
 run("ssh", [
   remoteHost,
   `git -C ${remoteDeployRoot} pull --ff-only && ${remoteDeployRoot}/scripts/deploy-${deployTargets[service] ?? service}`,

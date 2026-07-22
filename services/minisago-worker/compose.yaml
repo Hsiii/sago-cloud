@@ -1,0 +1,39 @@
+name: platform-minisago-worker
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  worker:
+    image: ghcr.io/hsiii/minisago-worker:${MINISAGO_WORKER_IMAGE_TAG:-main}
+    restart: unless-stopped
+    init: true
+    cpus: 1.25
+    mem_limit: 2g
+    logging: *default-logging
+    labels:
+      dev.hsichen.platform.managed: "true"
+    env_file:
+      - /srv/platform/secrets/minisago-worker.env
+    volumes:
+      - minisago-codex:/home/bun/.codex
+      - minisago-github:/home/bun/.config/gh
+      - minisago-state:/var/lib/minisago
+      - minisago-workspace:/workspace
+
+volumes:
+  minisago-codex:
+    external: true
+    name: platform_minisago-codex
+  minisago-github:
+    external: true
+    name: platform_minisago-github
+  minisago-state:
+    external: true
+    name: platform_minisago-state
+  minisago-workspace:
+    external: true
+    name: platform_minisago-workspace

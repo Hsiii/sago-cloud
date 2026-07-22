@@ -3,5 +3,5 @@ set -euo pipefail
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
 
-compose_pull homepage
-compose_up homepage
+compose_pull minisago-worker
+compose_up minisago-worker

@@ -10,13 +10,18 @@ STATE_ROOT="${STATE_ROOT:-"$PLATFORM_ROOT/state"}"
 EDGE_NETWORK_NAME="${EDGE_NETWORK_NAME:-platform_edge}"
 DATA_NETWORK_NAME="${DATA_NETWORK_NAME:-platform_data}"
 NETWORK_NAMES=("$EDGE_NETWORK_NAME" "$DATA_NETWORK_NAME")
-STACKS=(edge bot-core recipes homepage postgres)
+STACKS=(postgres bot-core homepage obi minisago-worker edge)
 VOLUME_NAMES=(
   platform_caddy-data
   platform_caddy-config
   platform_bot-core-state
-  recipe-site_uploads
   platform_postgres-data
+  platform_obi-data
+  platform_obi-config
+  platform_minisago-codex
+  platform_minisago-github
+  platform_minisago-state
+  platform_minisago-workspace
 )
 
 export OPERATIONS_ROOT PLATFORM_ROOT SECRETS_ROOT BACKUPS_ROOT STATE_ROOT

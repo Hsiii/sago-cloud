@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
+
+if [[ "${RETIRE_RECIPES_CONFIRMED:-}" != "yes" ]]; then
+  printf 'Set RETIRE_RECIPES_CONFIRMED=yes after exporting recipe-site_uploads.\n' >&2
+  exit 1
+fi
+
+mapfile -t container_ids < <(
+  "${DOCKER[@]}" ps --all --quiet \
+    --filter label=com.docker.compose.project=platform-recipes
+)
+
+if (( ${#container_ids[@]} > 0 )); then
+  "${DOCKER[@]}" stop "${container_ids[@]}"
+  "${DOCKER[@]}" rm "${container_ids[@]}"
+fi
+
+printf 'Recipes containers retired; recipe-site_uploads was preserved.\n'

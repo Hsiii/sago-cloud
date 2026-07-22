@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+deploy_script="$repo_root/scripts/deploy.mjs"
+
+grep -Fq 'ls-remote' "$deploy_script"
+grep -Fq 'This script never pushes code.' "$deploy_script"
+
+if grep -Eq 'run\("git", \["push"|git push' "$deploy_script"; then
+  printf 'deployment script still pushes code\n' >&2
+  exit 1
+fi
+
+printf 'deployment requires PR-updated main and never pushes code\n'

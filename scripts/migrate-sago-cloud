@@ -70,7 +70,38 @@ copy_volume() {
 }
 
 printf 'Creating a final PostgreSQL backup.\n'
-"$old_root/jobs/postgres/backup"
+postgres_container="$(
+  "${DOCKER[@]}" ps -q \
+    --filter label=com.docker.compose.project=platform-postgres \
+    --filter label=com.docker.compose.service=postgres
+)"
+if [[ -z "$postgres_container" ]]; then
+  printf 'The legacy PostgreSQL container is not running.\n' >&2
+  exit 1
+fi
+
+backup_dir="$old_root/backups/postgres"
+"${SUDO[@]}" install -d -o ubuntu -g ubuntu -m 0700 "$backup_dir"
+timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+backup="$backup_dir/postgres-$timestamp.dump"
+temporary="$backup.partial"
+trap 'rm -f -- "$temporary"' EXIT
+
+"${DOCKER[@]}" exec "$postgres_container" sh -ceu '
+  pg_dump \
+    --format=custom \
+    --compress=6 \
+    --no-owner \
+    --no-privileges \
+    --username="$POSTGRES_USER" \
+    --dbname="$POSTGRES_DB"
+' > "$temporary"
+"${DOCKER[@]}" exec -i "$postgres_container" pg_restore --list \
+  < "$temporary" >/dev/null
+chmod 0600 "$temporary"
+mv -- "$temporary" "$backup"
+trap - EXIT
+printf 'Created verified PostgreSQL backup: %s\n' "$backup"
 
 printf 'Stopping legacy Compose projects.\n'
 mapfile -t legacy_containers < <(

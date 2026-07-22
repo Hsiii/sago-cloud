@@ -26,6 +26,11 @@ done
 
 grep -Fq 'ln -s -- "$new_root" "$old_root"' "$migration"
 grep -Fq 'dev.hsichen.platform.managed=true' "$migration"
+grep -Fq 'com.docker.compose.project=platform-postgres' "$migration"
+if grep -Fq '"$old_root/jobs/postgres/backup"' "$migration"; then
+  printf 'migration backup depends on already-renamed Compose paths\n' >&2
+  exit 1
+fi
 grep -Fq 'dev.hsichen.sago-cloud.managed' "$repo_root/edge/compose.yaml"
 
 printf 'Sago Cloud migration preserves every legacy persistent volume\n'

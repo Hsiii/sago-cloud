@@ -15,7 +15,5 @@ ingress:
     originRequest:
       originServerName: <bot-hostname>
   - hostname: <media-hostname>
-    service: https://edge:443
-    originRequest:
-      originServerName: <media-hostname>
+    service: http://edge:80
   - service: http_status:404

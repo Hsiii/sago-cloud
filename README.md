@@ -63,14 +63,13 @@ neutral bot route, and `/` routes to `bot-core`.
 The co-located worker reaches `bot-core` through its private frontend-network
 alias. This avoids relying on public-IP hairpin routing from the A1 VM.
 
-The read and write workers share only Codex authentication. Each has separate
-broker secrets, GitHub, trace-state, and disposable-checkout volumes. The
-broker binds those secrets to `oracle-read`/`chat,dev-read` and
-`oracle-write`/`dev-write`, while Codex restricts every job to its selected
-checkout. Do not copy the retired broad
-`sago_cloud_minisago-github` login into either volume; authenticate fresh
-fine-grained identities and retain the old broad volumes only for rollback
-until both capability rehearsals pass.
+The read and write workers share Codex authentication and one dedicated `gh`
+login. Each retains separate broker secrets, trace-state, and disposable
+checkout volumes. The broker binds those secrets to
+`oracle-read`/`chat,dev-read` and `oracle-write`/`dev-write`, while Codex
+restricts every job to its selected checkout. Only owner requests can route to
+Sol, protected branches reject direct and force pushes, and provider
+credentials are not mounted.
 
 Homepage is the only public service configured to use the local PostgreSQL
 alias. Its one-shot migration container attaches only to `sago_cloud_data`; the

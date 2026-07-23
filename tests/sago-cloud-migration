@@ -23,7 +23,7 @@ for legacy_volume in "${legacy_volumes[@]}"; do
   grep -Fqx "  $legacy_volume:$cloud_volume" "$migration"
 
   case "$cloud_volume" in
-    sago_cloud_minisago-github | sago_cloud_minisago-state | sago_cloud_minisago-workspace) ;;
+    sago_cloud_minisago-state | sago_cloud_minisago-workspace) ;;
     *) grep -Fqx "  $cloud_volume" "$common" ;;
   esac
 done

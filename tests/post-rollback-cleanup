@@ -8,9 +8,13 @@ grep -Fq 'SAGO_CLOUD_ROLLBACK_CLEANUP_CONFIRMED' "$cleanup"
 grep -Fq "2026-07-25 12:42:00Z" "$cleanup"
 grep -Fq 'jobs/postgres/verify-backup' "$cleanup"
 grep -Fq 'platform_postgres-data' "$cleanup"
-grep -Fq 'sago_cloud_minisago-github' "$cleanup"
 grep -Fq 'sago_cloud_minisago-workspace' "$cleanup"
 grep -Fq '/home/ubuntu/arm-rehearsal /home/ubuntu/arm-cutover-final' "$cleanup"
+
+if grep -Fqx '  sago_cloud_minisago-github' "$cleanup"; then
+  printf 'post-rollback cleanup includes the active MiniSago GitHub volume\n' >&2
+  exit 1
+fi
 
 if grep -Eq 'docker system prune|volume prune' "$cleanup"; then
   printf 'post-rollback cleanup uses a broad destructive prune\n' >&2

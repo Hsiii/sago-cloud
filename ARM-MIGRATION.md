@@ -96,12 +96,13 @@ SAGO_CLOUD_RESTORE_CONFIRMED=yes scripts/restore-postgres /path/to/postgres.dump
 Verify `codex login status` and `gh auth status` inside the worker;
 reauthenticate interactively if either copied session is rejected.
 
-After the capability-profile release, replace the migrated broad GitHub login
-with fresh repo-scoped logins in `sago_cloud_minisago-github-read` and
-`sago_cloud_minisago-github-write`. Never copy the broad credential forward.
-Keep its old credential, state, and workspace volumes only until the new
-read-only review and draft-PR rehearsals pass, then revoke the old credential
-before deleting those rollback volumes.
+The capability-profile release keeps one dedicated GitHub CLI login in
+`sago_cloud_minisago-github`. The read and write modes remain owner-routed
+behavioral profiles around that login. Verify `gh auth status`, keep protected
+branches non-bypassable, and do not mount provider credentials. The split
+`sago_cloud_minisago-github-read` and
+`sago_cloud_minisago-github-write` volumes are obsolete after both capability
+rehearsals pass.
 
 Start PostgreSQL, bot-core, Homepage, OBI, and the worker before edge. Confirm
 container health, the MiniSago worker connection and capacity, Homepage health,

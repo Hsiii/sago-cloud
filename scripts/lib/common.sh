@@ -19,8 +19,7 @@ VOLUME_NAMES=(
   sago_cloud_obi-data
   sago_cloud_obi-config
   sago_cloud_minisago-codex
-  sago_cloud_minisago-github-read
-  sago_cloud_minisago-github-write
+  sago_cloud_minisago-github
   sago_cloud_minisago-state-read
   sago_cloud_minisago-state-write
   sago_cloud_minisago-workspace-read

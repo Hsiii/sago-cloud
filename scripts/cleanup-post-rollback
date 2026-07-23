@@ -47,8 +47,10 @@ legacy_volumes=(
   platform_minisago-github
   platform_minisago-state
   platform_minisago-workspace
-  sago_cloud_minisago-state
-  sago_cloud_minisago-workspace
+  sago_cloud_minisago-state-read
+  sago_cloud_minisago-state-write
+  sago_cloud_minisago-workspace-read
+  sago_cloud_minisago-workspace-write
 )
 for volume in "${legacy_volumes[@]}"; do
   if "${DOCKER[@]}" volume inspect "$volume" >/dev/null 2>&1; then

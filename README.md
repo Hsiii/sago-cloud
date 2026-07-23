@@ -45,10 +45,9 @@ to the external `sago_cloud_data` network:
 - `cloudflared`: optional outbound-only Cloudflare Tunnel ingress. It deploys
   separately so merging its definition cannot cut over live traffic.
 - `bot-core`: the current Discord bot runtime, published by MiniSago.
-- `minisago-worker`: separate always-on read and write Codex workers. The read
-  worker serves Luna chat and read-only Sol jobs; the write worker accepts only
-  explicit owner mutations. Each mounts only its own repo-scoped GitHub login,
-  profile-bound broker secret, state, and workspace.
+- `minisago-worker`: one always-on `chat,dev` Codex worker. It mounts one
+  repo-scoped GitHub login, broker secret, state volume, and disposable
+  workspace.
 - `homepage`: the multi-platform Homepage image, attached only to the frontend
   network. Authentication, bookmarks, and private wallpaper storage live in
   Supabase.
@@ -63,12 +62,10 @@ neutral bot route, and `/` routes to `bot-core`.
 The co-located worker reaches `bot-core` through its private frontend-network
 alias. This avoids relying on public-IP hairpin routing from the A1 VM.
 
-The read and write workers share Codex authentication and one dedicated `gh`
-login. Each retains separate broker secrets, trace-state, and disposable
-checkout volumes. The broker binds those secrets to
-`oracle-read`/`chat,dev-read` and `oracle-write`/`dev-write`, while Codex
-restricts every job to its selected checkout. Only owner requests can route to
-Sol, protected branches reject direct and force pushes, and provider
+The worker uses one dedicated `gh` login. The broker binds its secret to
+`oracle`/`chat,dev`, while Codex restricts every job to its selected checkout.
+Only owner requests can route to Sol. Remote mutation requires an explicit
+owner request, protected branches reject direct and force pushes, and provider
 credentials are not mounted.
 
 Homepage is the only public service configured to use the local PostgreSQL
@@ -219,8 +216,7 @@ cloudflared/config.yml
 cloudflared/credentials.json
 bot-core.env
 homepage.env
-minisago-worker-read.env
-minisago-worker-write.env
+minisago-worker.env
 obi.env
 postgres.env
 public-ingress.env

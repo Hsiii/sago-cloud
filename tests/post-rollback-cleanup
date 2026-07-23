@@ -11,11 +11,16 @@ grep -Fq "{{else}}none{{end}}" "$cleanup"
 grep -Fq '"$status" != "running"' "$cleanup"
 grep -Fq '"$health" != "none" && "$health" != "healthy"' "$cleanup"
 grep -Fq 'platform_postgres-data' "$cleanup"
-grep -Fq 'sago_cloud_minisago-workspace' "$cleanup"
+grep -Fq 'sago_cloud_minisago-workspace-read' "$cleanup"
 grep -Fq '/home/ubuntu/arm-rehearsal /home/ubuntu/arm-cutover-final' "$cleanup"
 
 if grep -Fqx '  sago_cloud_minisago-github' "$cleanup"; then
   printf 'post-rollback cleanup includes the active MiniSago GitHub volume\n' >&2
+  exit 1
+fi
+
+if grep -Eq '^  sago_cloud_minisago-(state|workspace)$' "$cleanup"; then
+  printf 'post-rollback cleanup includes an active MiniSago volume\n' >&2
   exit 1
 fi
 

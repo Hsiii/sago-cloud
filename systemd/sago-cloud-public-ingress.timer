@@ -1,0 +1,12 @@
+[Unit]
+Description=Verify Sago Cloud public ingress every five minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+RandomizedDelaySec=30s
+Persistent=true
+Unit=sago-cloud-public-ingress.service
+
+[Install]
+WantedBy=timers.target

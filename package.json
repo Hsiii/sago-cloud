@@ -18,6 +18,7 @@
     "verify:postgres-backup": "ssh sago-cloud /srv/sago-cloud/jobs/postgres/verify-backup",
     "install:postgres-backups": "ssh sago-cloud /srv/sago-cloud/operations/scripts/install-postgres-backup-timers",
     "install:health-watch": "ssh sago-cloud /srv/sago-cloud/operations/scripts/install-health-watch-timer",
+    "install:public-ingress": "ssh sago-cloud /srv/sago-cloud/operations/scripts/install-public-ingress-timer",
     "install:ssh-hardening": "ssh sago-cloud /srv/sago-cloud/operations/scripts/install-ssh-hardening",
     "migrate:sago-cloud": "ssh sago-cloud 'SAGO_CLOUD_MIGRATION_CONFIRMED=yes /srv/platform/operations/scripts/migrate-sago-cloud'",
     "rename:sago-cloud-host": "ssh sago-cloud 'SAGO_CLOUD_HOST_RENAME_CONFIRMED=yes /srv/sago-cloud/operations/scripts/rename-sago-cloud-host'",

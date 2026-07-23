@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+install_root="${INSTALL_ROOT:-/usr/local/libexec/sago-cloud-public-ingress}"
+environment_file="${PUBLIC_INGRESS_ENV_FILE:-/srv/sago-cloud/secrets/public-ingress.env}"
+sudo_command=(sudo)
+
+if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
+  sudo_command=()
+fi
+
+if [[ ! -s "$environment_file" ]]; then
+  printf 'Create %s from env/public-ingress.env.example before installing the timer.\n' \
+    "$environment_file" >&2
+  exit 1
+fi
+
+release_digest="$(
+  sha256sum \
+    "$repo_root/scripts/verify-public-ingress" \
+    "$repo_root/systemd/sago-cloud-public-ingress.service" \
+    "$repo_root/systemd/sago-cloud-public-ingress.timer" |
+    sha256sum |
+    cut -d ' ' -f 1
+)"
+release_dir="$install_root/releases/$release_digest"
+staging_dir="$install_root/.staging-$release_digest-$$"
+
+cleanup() {
+  "${sudo_command[@]}" rm -rf -- "$staging_dir"
+}
+trap cleanup EXIT
+
+"${sudo_command[@]}" install -d -o root -g root -m 0755 "$install_root/releases"
+"${sudo_command[@]}" install -d -o root -g root -m 0755 "$staging_dir/scripts"
+"${sudo_command[@]}" install -o root -g root -m 0755 \
+  "$repo_root/scripts/verify-public-ingress" \
+  "$staging_dir/scripts/verify-public-ingress"
+
+if [[ -d "$release_dir" ]]; then
+  if ! diff -qr "$staging_dir" "$release_dir" >/dev/null; then
+    printf 'Existing public-ingress release does not match its content digest.\n' >&2
+    exit 1
+  fi
+else
+  "${sudo_command[@]}" mv "$staging_dir" "$release_dir"
+fi
+
+"${sudo_command[@]}" ln -sfn "$release_dir" "$install_root/current.new"
+"${sudo_command[@]}" mv -Tf "$install_root/current.new" "$install_root/current"
+"${sudo_command[@]}" install -o root -g root -m 0644 \
+  "$repo_root/systemd/sago-cloud-public-ingress.service" \
+  /etc/systemd/system/sago-cloud-public-ingress.service
+"${sudo_command[@]}" install -o root -g root -m 0644 \
+  "$repo_root/systemd/sago-cloud-public-ingress.timer" \
+  /etc/systemd/system/sago-cloud-public-ingress.timer
+
+"${sudo_command[@]}" systemctl daemon-reload
+"${sudo_command[@]}" systemctl enable --now sago-cloud-public-ingress.timer
+"${sudo_command[@]}" systemctl start sago-cloud-public-ingress.service
+"${sudo_command[@]}" systemctl status sago-cloud-public-ingress.timer --no-pager

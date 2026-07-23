@@ -125,6 +125,7 @@ Install or refresh systemd units after changing the operations checkout:
 
 ```bash
 scripts/install-health-watch-timer
+scripts/install-public-ingress-timer
 scripts/install-postgres-backup-timers
 ```
 
@@ -186,6 +187,21 @@ OBI_URL=https://obi.example.com \
   scripts/verify-public-ingress
 ```
 
+For continuous end-to-end verification, copy
+`env/public-ingress.env.example` to
+`/srv/sago-cloud/secrets/public-ingress.env`, set the two public HTTPS origins,
+their expected HTTP statuses, and run `scripts/install-public-ingress-timer`.
+The default expectations are `200` for Homepage and OBI's intentional
+unauthenticated `401`. The timer checks both public paths through Cloudflare
+every five minutes and records failures in the systemd journal. Cloudflare
+Tunnel health notifications independently alert when the connector becomes
+degraded or unavailable.
+
+The edge trusts forwarding headers only from private-network peers, reads
+`CF-Connecting-IP` before `X-Forwarded-For`, uses strict proxy-chain parsing,
+and emits structured access logs for every public site. This is safe only while
+Caddy remains unexposed and `cloudflared` is its sole public ingress.
+
 Keep Tailscale as the administrative path and remove any now-redundant OCI
 ingress rules for TCP 80 and 443 after verifying the tunnel from an external
 network.
@@ -205,6 +221,7 @@ minisago-worker-read.env
 minisago-worker-write.env
 obi.env
 postgres.env
+public-ingress.env
 ```
 
 Container logs rotate at 10 MB with three files retained per service. PostgreSQL

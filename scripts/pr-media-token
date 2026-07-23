@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
+
+usage() {
+  printf 'Usage: pr-media-token create|revoke|list [name]\n' >&2
+  exit 2
+}
+
+[ "$#" -ge 1 ] && [ "$#" -le 2 ] || usage
+action="$1"
+name="${2:-}"
+token_root="$SECRETS_ROOT/pr-media-tokens"
+
+if [ "$(id -u)" -eq 0 ]; then
+  SUDO=()
+else
+  SUDO=(sudo -n)
+fi
+
+case "$action" in
+  create)
+    [ "$#" -eq 2 ] || usage
+    [[ "$name" =~ ^[a-z0-9][a-z0-9_-]{0,31}$ ]] || usage
+    "${SUDO[@]}" install -d -o root -g root -m 0700 "$token_root"
+    if "${SUDO[@]}" test -e "$token_root/$name"; then
+      printf 'Token %s already exists; revoke it before rotating.\n' "$name" >&2
+      exit 1
+    fi
+
+    token="$(openssl rand -hex 32)"
+    digest="$(printf '%s' "$token" | sha256sum | awk '{print $1}')"
+    temporary="$(mktemp)"
+    trap 'rm -f -- "$temporary"' EXIT
+    printf '%s\n' "$digest" >"$temporary"
+    "${SUDO[@]}" install -o root -g root -m 0600 \
+      "$temporary" "$token_root/$name"
+
+    media_domain="$(
+      sed -n 's/^MEDIA_DOMAIN=//p' "$SECRETS_ROOT/proxy.env" | tail -1
+    )"
+    if [ -z "$media_domain" ]; then
+      printf 'MEDIA_DOMAIN is missing from %s/proxy.env.\n' "$SECRETS_ROOT" >&2
+      "${SUDO[@]}" rm -f -- "$token_root/$name"
+      exit 1
+    fi
+    printf 'Save this once; only its hash is stored on Oracle.\n'
+    printf 'url=https://%s\n' "$media_domain"
+    printf 'token=%s\n' "$token"
+    ;;
+  revoke)
+    [ "$#" -eq 2 ] || usage
+    [[ "$name" =~ ^[a-z0-9][a-z0-9_-]{0,31}$ ]] || usage
+    "${SUDO[@]}" rm -f -- "$token_root/$name"
+    printf 'Revoked %s.\n' "$name"
+    ;;
+  list)
+    [ "$#" -eq 1 ] || usage
+    "${SUDO[@]}" find "$token_root" -maxdepth 1 -type f -printf '%f\n' |
+      sort
+    ;;
+  *)
+    usage
+    ;;
+esac

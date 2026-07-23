@@ -5,6 +5,7 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
 
 install -d -m 0755 "$SAGO_CLOUD_ROOT"
 install -d -m 0700 "$SECRETS_ROOT" "$BACKUPS_ROOT"
+install -d -m 0700 "$SECRETS_ROOT/pr-media-tokens"
 install -d -m 0755 "$STATE_ROOT"
 
 ln -sfn "$OPERATIONS_ROOT/edge" "$SAGO_CLOUD_ROOT/edge"

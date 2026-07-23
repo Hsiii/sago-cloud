@@ -2,7 +2,7 @@
 set -euo pipefail
 
 usage() {
-  printf 'Usage: pr-media-upload [--repo OWNER/REPO --pr NUMBER] <image-or-video>\n' >&2
+  printf 'Usage: pr-media-upload [--repo OWNER/REPO --pr NUMBER] [--update-pr-body] <image-or-video>\n' >&2
   exit 2
 }
 
@@ -17,6 +17,7 @@ file_size() {
 repo=
 pr_number=
 source_argument=
+update_pr_body=0
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -29,6 +30,10 @@ while [ "$#" -gt 0 ]; do
       [ "$#" -ge 2 ] || usage
       pr_number="$2"
       shift 2
+      ;;
+    --update-pr-body)
+      update_pr_body=1
+      shift
       ;;
     --)
       shift
@@ -48,6 +53,16 @@ while [ "$#" -gt 0 ]; do
 done
 
 [ -n "$source_argument" ] || usage
+
+if [ "$update_pr_body" = 1 ] && [ -z "$repo" ] && [ -z "$pr_number" ]; then
+  repo="$(gh repo view --json nameWithOwner --jq .nameWithOwner 2>/dev/null || true)"
+  pr_number="$(gh pr view --json number --jq .number 2>/dev/null || true)"
+  if [ -z "$repo" ] || [ -z "$pr_number" ]; then
+    printf 'Could not detect the current GitHub repository and pull request.\n' >&2
+    exit 2
+  fi
+fi
+
 if { [ -n "$repo" ] && [ -z "$pr_number" ]; } ||
   { [ -z "$repo" ] && [ -n "$pr_number" ]; }; then
   printf -- '--repo and --pr must be provided together.\n' >&2
@@ -70,6 +85,7 @@ image_limit="${PR_MEDIA_MAX_IMAGE_BYTES:-52428800}"
 video_limit="${PR_MEDIA_MAX_VIDEO_BYTES:-104857600}"
 pruner="${PR_MEDIA_PRUNE_COMMAND:-pr-media-prune}"
 optimizer="${PR_MEDIA_OPTIMIZE_COMMAND:-pr-media-optimize}"
+body_updater="${PR_MEDIA_BODY_COMMAND:-pr-media-add-to-pr}"
 
 filename="$(basename -- "$source_path")"
 extension="${filename##*.}"
@@ -168,4 +184,9 @@ if command -v "$pruner" >/dev/null 2>&1; then
   PR_MEDIA_LOCK_HELD=1 "$pruner"
 fi
 
-printf '%s%s%s\n' "$markdown_prefix" "$url" "$markdown_suffix"
+markdown="$markdown_prefix$url$markdown_suffix"
+if [ "$update_pr_body" = 1 ]; then
+  "$body_updater" --repo "$repo" --pr "$pr_number" "$markdown"
+fi
+
+printf '%s\n' "$markdown"

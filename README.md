@@ -100,6 +100,16 @@ pr-media-upload \
   /workspace/worktrees/example/screenshot.png
 ```
 
+From a branch with an open PR, let the command detect both identifiers and
+append the returned Markdown to a managed section of the existing PR body:
+
+```bash
+pr-media-upload --update-pr-body screenshot.png
+```
+
+Repeated uploads are content-deduplicated, and repeated PR-body updates do not
+duplicate the same media entry. Existing PR body content remains untouched.
+
 Uploads validate file contents and accept PNG, JPEG, GIF, WebP, MP4, and WebM.
 Images are limited to 50 MiB and videos to 100 MiB by default. Location and
 other metadata is stripped. PNG optimization is lossless, JPEG quality is
@@ -129,7 +139,9 @@ pr-media-pin --remove https://media.example.com/ab/<hash>.png
 
 The host timer checks PR state through the Oracle user's authenticated GitHub
 CLI configuration. Cleanup emits an event for every eviction but sends no
-capacity warning before either threshold.
+capacity warning before either threshold. A separate weekly integrity pass
+recomputes every object's SHA-256 digest and fails loudly in the systemd journal
+if disk corruption no longer matches its content-addressed filename.
 
 Homepage is the only public service configured to use the local PostgreSQL
 alias. Its one-shot migration container attaches only to `sago_cloud_data`; the
@@ -246,16 +258,18 @@ Verify the public path with:
 ```bash
 HOMEPAGE_URL=https://homepage.example.com \
 OBI_URL=https://obi.example.com \
+MEDIA_URL=https://media.example.com \
   scripts/verify-public-ingress
 ```
 
 For continuous end-to-end verification, copy
 `env/public-ingress.env.example` to
-`/srv/sago-cloud/secrets/public-ingress.env`, set the two public HTTPS origins,
+`/srv/sago-cloud/secrets/public-ingress.env`, set the three public HTTPS origins,
 their expected HTTP statuses, and run `scripts/install-public-ingress-timer`.
 The default expectations are `200` for Homepage and OBI's intentional
-unauthenticated `401`. The timer checks both public paths through Cloudflare
-every five minutes and records failures in the systemd journal. Cloudflare
+unauthenticated `401`; the media hostname intentionally returns `404` at its
+root. The timer checks all three public paths through Cloudflare every five
+minutes and records failures in the systemd journal. Cloudflare
 Tunnel health notifications independently alert when the connector becomes
 degraded or unavailable.
 

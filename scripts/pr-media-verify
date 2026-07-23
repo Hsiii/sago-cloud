@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -euo pipefail
+shopt -s nullglob
+
+media_root="${PR_MEDIA_ROOT:-/srv/pr-media}"
+checked=0
+failed=0
+fallback_lock=
+
+cleanup() {
+  [ -z "$fallback_lock" ] || rmdir -- "$fallback_lock" 2>/dev/null || true
+}
+trap cleanup EXIT
+
+if command -v flock >/dev/null 2>&1; then
+  exec 9>"$media_root/.upload.lock"
+  flock --shared 9
+else
+  fallback_lock="$media_root/.upload.lock.d"
+  if ! mkdir -- "$fallback_lock"; then
+    printf 'Another media operation is in progress.\n' >&2
+    exit 1
+  fi
+fi
+
+for media_path in "$media_root"/[0-9a-f][0-9a-f]/*; do
+  [ -f "$media_path" ] || continue
+  filename="$(basename -- "$media_path")"
+  [[ "$filename" =~ ^([0-9a-f]{64})\.(gif|jpg|mp4|png|webp)$ ]] || continue
+  expected_digest="${BASH_REMATCH[1]}"
+  actual_digest="$(sha256sum -- "$media_path" | awk '{print $1}')"
+  checked=$((checked + 1))
+  if [ "$actual_digest" != "$expected_digest" ]; then
+    printf 'pr-media: checksum FAILED for %s\n' "$media_path" >&2
+    failed=1
+  fi
+done
+
+printf 'pr-media: verified %s content-addressed objects\n' "$checked"
+exit "$failed"

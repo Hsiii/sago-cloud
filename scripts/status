@@ -7,3 +7,6 @@ for stack in "${STACKS[@]}"; do
   printf '\n[%s]\n' "$stack"
   compose "$stack" ps
 done
+
+printf '\n'
+"$OPERATIONS_ROOT/scripts/pr-media-status"

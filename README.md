@@ -53,8 +53,9 @@ to the external `sago_cloud_data` network:
   network. Authentication, bookmarks, and private wallpaper storage live in
   Supabase.
 - `obi`: CouchDB for Obsidian LiveSync.
-- `postgres`: private legacy PostgreSQL, isolated from the public-service
-  network and retained only until the Homepage rollback backup is retired.
+- `postgres`: offline legacy PostgreSQL, excluded from `deploy:all`. Its private
+  volume, verified dump, and explicit recovery commands remain available until
+  the Homepage rollback window closes.
 
 Caddy discovers services through role-based network aliases. `/bot/*` is the
 neutral bot route, and `/` routes to `bot-core`.

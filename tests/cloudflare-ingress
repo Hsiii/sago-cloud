@@ -56,5 +56,6 @@ grep -Fq 'RandomizedDelaySec=30s' "$public_ingress_timer"
 grep -Fq 'scripts/verify-public-ingress' "$public_ingress_installer"
 grep -Fq 'HOMEPAGE_EXPECTED_STATUS:-200' "$repo_root/scripts/verify-public-ingress"
 grep -Fq 'OBI_EXPECTED_STATUS:-401' "$repo_root/scripts/verify-public-ingress"
+grep -Fq 'MEDIA_EXPECTED_STATUS:-404' "$repo_root/scripts/verify-public-ingress"
 
 printf 'Cloudflare Tunnel service is public-safe and uses the private edge network\n'

@@ -3,8 +3,11 @@ set -euo pipefail
 
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 installer="$repo_root/scripts/install-pr-media-storage"
+body_command="$repo_root/scripts/pr-media-add-to-pr"
 uploader="$repo_root/scripts/pr-media-upload"
 pin_command="$repo_root/scripts/pr-media-pin"
+status_command="$repo_root/scripts/pr-media-status"
+verify_command="$repo_root/scripts/pr-media-verify"
 pruner="$repo_root/scripts/pr-media-prune"
 caddyfile="$repo_root/edge/Caddyfile"
 worker_compose="$repo_root/services/minisago-worker/compose.yaml"
@@ -65,6 +68,50 @@ PR_MEDIA_ROOT="$media_root" \
   "$pin_command" --remove "$media_root/${digest:0:2}/$digest.png" >/dev/null
 [ ! -e "$media_root/.pins/$digest" ]
 
+body_bin="$work_dir/body-bin"
+install -d "$body_bin"
+printf '%s\n' \
+  '#!/bin/sh' \
+  'if [ "$1 $2" = "repo view" ]; then' \
+  '  printf "Hsiii/sago-cloud\n"' \
+  'elif [ "$1 $2" = "pr view" ] && [ "$3" = "--json" ]; then' \
+  '  printf "24\n"' \
+  'elif [ "$1 $2" = "pr view" ]; then' \
+  '  if [ -n "${FAKE_GH_BODY:-}" ]; then cat "$FAKE_GH_BODY"; else printf "Existing PR description.\n"; fi' \
+  'elif [ "$1 $2" = "pr edit" ]; then' \
+  '  while [ "$#" -gt 0 ]; do' \
+  '    if [ "$1" = "--body-file" ]; then cp "$2" "$FAKE_GH_UPDATED"; exit 0; fi' \
+  '    shift' \
+  '  done' \
+  '  exit 1' \
+  'else' \
+  '  exit 1' \
+  'fi' \
+  >"$body_bin/gh"
+chmod +x "$body_bin/gh"
+
+updated_body="$work_dir/updated-body.md"
+PATH="$body_bin:$PATH" \
+FAKE_GH_UPDATED="$updated_body" \
+PR_MEDIA_ROOT="$media_root" \
+PR_MEDIA_BASE_URL=https://media.example.test/media \
+PR_MEDIA_BODY_COMMAND="$body_command" \
+PR_MEDIA_PRUNE_COMMAND="$pruner" \
+PR_MEDIA_OPTIMIZE=0 \
+PR_MEDIA_USED_PERCENT=0 \
+  "$uploader" --update-pr-body "$source_file" >/dev/null
+grep -Fqx '<!-- sago-pr-media:start -->' "$updated_body"
+grep -Fqx '<!-- sago-pr-media:end -->' "$updated_body"
+grep -Fqx -- "- $expected" "$updated_body"
+[ -f "$media_root/.refs/$digest/Hsiii/sago-cloud/24" ]
+
+duplicate_update="$work_dir/duplicate-update.md"
+PATH="$body_bin:$PATH" \
+FAKE_GH_BODY="$updated_body" \
+FAKE_GH_UPDATED="$duplicate_update" \
+  "$body_command" --repo Hsiii/sago-cloud --pr 24 "$expected" >/dev/null
+[ ! -e "$duplicate_update" ]
+
 printf 'not media\n' >"$work_dir/rejected.txt"
 if PR_MEDIA_ROOT="$media_root" \
   PR_MEDIA_BASE_URL=https://media.example.test/media \
@@ -96,9 +143,11 @@ grep -Fq 'loop,nofail,nodev,nosuid,noexec,discard' "$installer"
 grep -Fq 'docker.service.d/sago-cloud-pr-media-mount.conf' "$installer"
 grep -Fq 'losetup -j "$media_image"' "$installer"
 grep -Fq '/usr/local/libexec/sago-cloud-pr-media-prune' "$installer"
+grep -Fq '/usr/local/libexec/sago-cloud-pr-media-verify' "$installer"
 grep -Fq '/srv/pr-media:/srv/pr-media:ro' "$edge_compose"
 grep -Fq '/srv/pr-media:/srv/pr-media' "$worker_compose"
 grep -Fq 'pr-media-optimize:/usr/local/bin/pr-media-optimize:ro' "$worker_compose"
+grep -Fq 'pr-media-add-to-pr:/usr/local/bin/pr-media-add-to-pr:ro' "$worker_compose"
 grep -Fq 'pr-media-pin:/usr/local/bin/pr-media-pin:ro' "$worker_compose"
 grep -Fq 'path_regexp supported_media' "$caddyfile"
 grep -Fq '{$MEDIA_DOMAIN}' "$caddyfile"
@@ -108,6 +157,47 @@ grep -Fq 'require_pr_media_mount' "$repo_root/scripts/deploy-edge"
 grep -Fq 'require_pr_media_mount' "$repo_root/scripts/deploy-minisago-worker"
 grep -Fq 'RequiresMountsFor=/srv/pr-media' \
   "$repo_root/systemd/docker-pr-media-mount.conf"
+grep -Fq 'sago-cloud-pr-media-prune.timer' "$status_command"
+grep -Fq 'sago-cloud-pr-media-verify.timer' "$status_command"
+grep -Fq 'sago-cloud-public-ingress.timer' "$status_command"
+grep -Fq 'sago-cloud-public-ingress.service' "$status_command"
+
+PR_MEDIA_ROOT="$media_root" "$verify_command" >/dev/null
+printf corrupted >>"$media_root/${digest:0:2}/$digest.png"
+if PR_MEDIA_ROOT="$media_root" "$verify_command" >/dev/null 2>&1; then
+  printf 'integrity verification accepted corrupted media\n' >&2
+  exit 1
+fi
+printf '%s' \
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=' |
+  base64 --decode >"$media_root/${digest:0:2}/$digest.png"
+
+status_bin="$work_dir/status-bin"
+install -d "$status_bin"
+printf '%s\n' '#!/bin/sh' 'printf "/dev/loop7\n"' >"$status_bin/findmnt"
+printf '%s\n' \
+  '#!/bin/sh' \
+  'printf "Filesystem 1024-blocks Used Available Capacity Mounted on\n"' \
+  'printf "/dev/loop7 100 1 99 1%% %s\n" "$2"' \
+  >"$status_bin/df"
+printf '%s\n' \
+  '#!/bin/sh' \
+  'case "$1" in' \
+  '  is-active) exit 0 ;;' \
+  '  show) printf "success\n" ;;' \
+  '  *) exit 1 ;;' \
+  'esac' \
+  >"$status_bin/systemctl"
+chmod +x "$status_bin/findmnt" "$status_bin/df" "$status_bin/systemctl"
+
+status_output="$(
+  PATH="$status_bin:$PATH" PR_MEDIA_ROOT="$media_root" "$status_command"
+)"
+grep -Fq 'mount: ok (/dev/loop7)' <<<"$status_output"
+grep -Fq 'capacity: 1%' <<<"$status_output"
+grep -Fq 'objects: 1, PR references: 1, pins: 0' <<<"$status_output"
+grep -Fq 'integrity timer: active' <<<"$status_output"
+grep -Fq 'public ingress timer: active' <<<"$status_output"
 
 install -d "$work_dir/bin"
 

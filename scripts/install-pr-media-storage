@@ -78,6 +78,9 @@ fi
 "${SUDO[@]}" install -o root -g root -m 0755 \
   "$OPERATIONS_ROOT/scripts/pr-media-prune" \
   /usr/local/libexec/sago-cloud-pr-media-prune
+"${SUDO[@]}" install -o root -g root -m 0755 \
+  "$OPERATIONS_ROOT/scripts/pr-media-verify" \
+  /usr/local/libexec/sago-cloud-pr-media-verify
 "${SUDO[@]}" install -m 0644 \
   "$OPERATIONS_ROOT/systemd/docker-pr-media-mount.conf" \
   /etc/systemd/system/docker.service.d/sago-cloud-pr-media-mount.conf
@@ -87,8 +90,17 @@ fi
 "${SUDO[@]}" install -m 0644 \
   "$OPERATIONS_ROOT/systemd/sago-cloud-pr-media-prune.timer" \
   /etc/systemd/system/sago-cloud-pr-media-prune.timer
+"${SUDO[@]}" install -m 0644 \
+  "$OPERATIONS_ROOT/systemd/sago-cloud-pr-media-verify.service" \
+  /etc/systemd/system/sago-cloud-pr-media-verify.service
+"${SUDO[@]}" install -m 0644 \
+  "$OPERATIONS_ROOT/systemd/sago-cloud-pr-media-verify.timer" \
+  /etc/systemd/system/sago-cloud-pr-media-verify.timer
 "${SUDO[@]}" systemctl daemon-reload
-"${SUDO[@]}" systemctl enable --now sago-cloud-pr-media-prune.timer
+"${SUDO[@]}" systemctl enable --now \
+  sago-cloud-pr-media-prune.timer \
+  sago-cloud-pr-media-verify.timer
 
 findmnt "$media_root"
 "${SUDO[@]}" systemctl status sago-cloud-pr-media-prune.timer --no-pager
+"${SUDO[@]}" systemctl status sago-cloud-pr-media-verify.timer --no-pager

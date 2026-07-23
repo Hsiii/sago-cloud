@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+set -euo pipefail
+shopt -s nullglob
+
+media_root="${PR_MEDIA_ROOT:-/srv/pr-media}"
+failed=0
+
+printf '[pr-media]\n'
+if mounted_source="$(findmnt -rn -o SOURCE --mountpoint "$media_root" 2>/dev/null)"; then
+  case "$mounted_source" in
+    /dev/loop*) printf 'mount: ok (%s)\n' "$mounted_source" ;;
+    *)
+      printf 'mount: FAILED (unexpected source %s)\n' "$mounted_source"
+      failed=1
+      ;;
+  esac
+else
+  printf 'mount: FAILED (%s is not mounted)\n' "$media_root"
+  failed=1
+fi
+
+if [ -d "$media_root" ]; then
+  usage="$(df -P "$media_root" | awk 'NR == 2 { print $5 }')"
+  printf 'capacity: %s\n' "$usage"
+
+  media_count=0
+  for media_path in "$media_root"/[0-9a-f][0-9a-f]/*; do
+    [ -f "$media_path" ] || continue
+    filename="$(basename -- "$media_path")"
+    [[ "$filename" =~ ^[0-9a-f]{64}\.(gif|jpg|mp4|png|webp)$ ]] || continue
+    media_count=$((media_count + 1))
+  done
+  reference_count=0
+  pin_count=0
+  if [ -d "$media_root/.refs" ]; then
+    reference_count="$(find "$media_root/.refs" -type f | wc -l | tr -d ' ')"
+  fi
+  if [ -d "$media_root/.pins" ]; then
+    pin_count="$(find "$media_root/.pins" -type f | wc -l | tr -d ' ')"
+  fi
+  printf 'objects: %s, PR references: %s, pins: %s\n' \
+    "$media_count" "$reference_count" "$pin_count"
+fi
+
+if systemctl is-active --quiet sago-cloud-pr-media-prune.timer; then
+  printf 'prune timer: active\n'
+else
+  printf 'prune timer: FAILED\n'
+  failed=1
+fi
+
+if systemctl is-active --quiet sago-cloud-pr-media-verify.timer; then
+  printf 'integrity timer: active\n'
+else
+  printf 'integrity timer: FAILED\n'
+  failed=1
+fi
+
+if systemctl is-active --quiet sago-cloud-public-ingress.timer; then
+  printf 'public ingress timer: active\n'
+else
+  printf 'public ingress timer: FAILED\n'
+  failed=1
+fi
+
+for service in \
+  sago-cloud-pr-media-prune.service \
+  sago-cloud-pr-media-verify.service \
+  sago-cloud-public-ingress.service; do
+  if ! result="$(systemctl show "$service" --property Result --value 2>/dev/null)"; then
+    printf '%s: FAILED (unit unavailable)\n' "$service"
+    failed=1
+    continue
+  fi
+  if [ -z "$result" ] || [ "$result" = success ]; then
+    printf '%s: %s\n' "$service" "${result:-not-run}"
+  else
+    printf '%s: FAILED (%s)\n' "$service" "$result"
+    failed=1
+  fi
+done
+
+exit "$failed"

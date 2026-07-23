@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  printf 'Usage: pr-media-add-to-pr --repo OWNER/REPO --pr NUMBER <markdown>\n' >&2
+  exit 2
+}
+
+repo=
+pr_number=
+markdown=
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --repo)
+      [ "$#" -ge 2 ] || usage
+      repo="$2"
+      shift 2
+      ;;
+    --pr)
+      [ "$#" -ge 2 ] || usage
+      pr_number="$2"
+      shift 2
+      ;;
+    -*)
+      usage
+      ;;
+    *)
+      [ -z "$markdown" ] || usage
+      markdown="$1"
+      shift
+      ;;
+  esac
+done
+
+[ -n "$repo" ] && [ -n "$pr_number" ] && [ -n "$markdown" ] || usage
+[[ "$repo" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || usage
+[[ "$pr_number" =~ ^[1-9][0-9]*$ ]] || usage
+case "$markdown" in
+  *$'\n'* | *$'\r'*) usage ;;
+esac
+
+start_marker='<!-- sago-pr-media:start -->'
+end_marker='<!-- sago-pr-media:end -->'
+temporary_dir="$(mktemp -d "${TMPDIR:-/tmp}/pr-media-body.XXXXXX")"
+body_file="$temporary_dir/body.md"
+updated_file="$temporary_dir/updated.md"
+
+cleanup() {
+  rm -rf -- "$temporary_dir"
+}
+trap cleanup EXIT
+
+gh pr view "$pr_number" --repo "$repo" --json body --jq '.body // ""' >"$body_file"
+
+start_count="$(grep -Fxc "$start_marker" "$body_file" || true)"
+end_count="$(grep -Fxc "$end_marker" "$body_file" || true)"
+if [ "$start_count" -ne "$end_count" ] || [ "$start_count" -gt 1 ]; then
+  printf 'PR body has malformed Sago media markers; refusing to edit it.\n' >&2
+  exit 1
+fi
+if [ "$start_count" = 1 ]; then
+  start_line="$(grep -Fnx "$start_marker" "$body_file" | cut -d: -f1)"
+  end_line="$(grep -Fnx "$end_marker" "$body_file" | cut -d: -f1)"
+  if [ "$start_line" -ge "$end_line" ]; then
+    printf 'PR body has reversed Sago media markers; refusing to edit it.\n' >&2
+    exit 1
+  fi
+fi
+
+if grep -Fqx -- "- $markdown" "$body_file"; then
+  printf 'PR body already contains this media.\n' >&2
+  exit 0
+fi
+
+if [ "$start_count" = 1 ]; then
+  awk -v addition="- $markdown" -v end_marker="$end_marker" '
+    $0 == end_marker && !inserted {
+      print addition
+      inserted = 1
+    }
+    { print }
+  ' "$body_file" >"$updated_file"
+else
+  {
+    cat "$body_file"
+    [ ! -s "$body_file" ] || printf '\n'
+    printf '%s\n## PR media\n- %s\n%s\n' \
+      "$start_marker" "$markdown" "$end_marker"
+  } >"$updated_file"
+fi
+
+gh pr edit "$pr_number" --repo "$repo" --body-file "$updated_file" >/dev/null
+printf 'Updated %s#%s PR body.\n' "$repo" "$pr_number" >&2

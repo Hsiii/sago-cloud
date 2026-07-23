@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
+
+if [ "$(id -u)" -eq 0 ]; then
+  SUDO=()
+else
+  SUDO=(sudo -n)
+fi
+
+media_root="${PR_MEDIA_ROOT:-/srv/pr-media}"
+media_image="${PR_MEDIA_IMAGE:-$STATE_ROOT/pr-media.ext4}"
+media_size_bytes="${PR_MEDIA_SIZE_BYTES:-10737418240}"
+fstab_entry="$media_image $media_root ext4 loop,nofail,nodev,nosuid,noexec,discard 0 0"
+
+case "$media_root" in
+  /srv/*) ;;
+  *)
+    printf 'PR_MEDIA_ROOT must be a path below /srv.\n' >&2
+    exit 1
+    ;;
+esac
+
+case "$media_image" in
+  "$STATE_ROOT"/*) ;;
+  *)
+    printf 'PR_MEDIA_IMAGE must be a path below %s.\n' "$STATE_ROOT" >&2
+    exit 1
+    ;;
+esac
+
+if ! [[ "$media_size_bytes" =~ ^[0-9]+$ ]] || [ "$media_size_bytes" -lt 1073741824 ]; then
+  printf 'PR_MEDIA_SIZE_BYTES must be an integer of at least 1 GiB.\n' >&2
+  exit 1
+fi
+
+"${SUDO[@]}" install -d -o root -g root -m 0755 "$STATE_ROOT" "$media_root"
+
+if ! "${SUDO[@]}" test -e "$media_image"; then
+  "${SUDO[@]}" truncate -s "$media_size_bytes" "$media_image"
+  "${SUDO[@]}" chmod 0600 "$media_image"
+  "${SUDO[@]}" mkfs.ext4 -F -m 0 -L sago-pr-media "$media_image"
+elif [ "$("${SUDO[@]}" stat -c %s "$media_image")" -ne "$media_size_bytes" ]; then
+  printf 'Existing media image has a different size; refusing to resize it automatically.\n' >&2
+  exit 1
+fi
+
+existing_entry="$("${SUDO[@]}" awk -v target="$media_root" '$2 == target { print; exit }' /etc/fstab)"
+if [ -n "$existing_entry" ] && [ "$existing_entry" != "$fstab_entry" ]; then
+  printf 'A different /etc/fstab entry already targets %s.\n' "$media_root" >&2
+  exit 1
+fi
+
+if [ -z "$existing_entry" ]; then
+  printf '%s\n' "$fstab_entry" | "${SUDO[@]}" tee -a /etc/fstab >/dev/null
+fi
+
+if ! findmnt -rn --mountpoint "$media_root" >/dev/null; then
+  "${SUDO[@]}" mount "$media_root"
+fi
+
+mounted_fstype="$(findmnt -rn -o FSTYPE --mountpoint "$media_root")"
+if [ "$mounted_fstype" != ext4 ]; then
+  printf '%s is mounted as %s, not ext4.\n' "$media_root" "$mounted_fstype" >&2
+  exit 1
+fi
+
+mounted_source="$(findmnt -rn -o SOURCE --mountpoint "$media_root")"
+loop_source="$("${SUDO[@]}" losetup -j "$media_image" | awk -F: 'NR == 1 { print $1 }')"
+if [ -z "$loop_source" ] || [ "$mounted_source" != "$loop_source" ]; then
+  printf '%s is not mounted from the expected bounded image.\n' "$media_root" >&2
+  exit 1
+fi
+
+"${SUDO[@]}" chmod 0755 "$media_root"
+"${SUDO[@]}" install -d -o root -g root -m 0755 /etc/systemd/system/docker.service.d
+"${SUDO[@]}" install -o root -g root -m 0755 \
+  "$OPERATIONS_ROOT/scripts/pr-media-prune" \
+  /usr/local/libexec/sago-cloud-pr-media-prune
+"${SUDO[@]}" install -m 0644 \
+  "$OPERATIONS_ROOT/systemd/docker-pr-media-mount.conf" \
+  /etc/systemd/system/docker.service.d/sago-cloud-pr-media-mount.conf
+"${SUDO[@]}" install -m 0644 \
+  "$OPERATIONS_ROOT/systemd/sago-cloud-pr-media-prune.service" \
+  /etc/systemd/system/sago-cloud-pr-media-prune.service
+"${SUDO[@]}" install -m 0644 \
+  "$OPERATIONS_ROOT/systemd/sago-cloud-pr-media-prune.timer" \
+  /etc/systemd/system/sago-cloud-pr-media-prune.timer
+"${SUDO[@]}" systemctl daemon-reload
+"${SUDO[@]}" systemctl enable --now sago-cloud-pr-media-prune.timer
+
+findmnt "$media_root"
+"${SUDO[@]}" systemctl status sago-cloud-pr-media-prune.timer --no-pager

@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+installer="$repo_root/scripts/install-pr-media-storage"
+uploader="$repo_root/scripts/pr-media-upload"
+pruner="$repo_root/scripts/pr-media-prune"
+caddyfile="$repo_root/edge/Caddyfile"
+worker_compose="$repo_root/services/minisago-worker/compose.yaml"
+edge_compose="$repo_root/edge/compose.yaml"
+
+work_dir="$(mktemp -d)"
+trap 'rm -rf -- "$work_dir"' EXIT
+
+inode() {
+  if stat -c %i "$1" >/dev/null 2>&1; then
+    stat -c %i "$1"
+  else
+    stat -f %i "$1"
+  fi
+}
+
+media_root="$work_dir/media"
+source_file="$work_dir/preview.png"
+printf 'fake png content\n' >"$source_file"
+
+output="$(
+  PR_MEDIA_ROOT="$media_root" \
+  PR_MEDIA_BASE_URL=https://media.example.test/media \
+  PR_MEDIA_PRUNE_COMMAND="$pruner" \
+  PR_MEDIA_USED_PERCENT=0 \
+    "$uploader" "$source_file"
+)"
+
+digest="$(sha256sum "$source_file" | awk '{print $1}')"
+expected="![PR preview](https://media.example.test/media/${digest:0:2}/$digest.png)"
+[ "$output" = "$expected" ]
+[ -f "$media_root/${digest:0:2}/$digest.png" ]
+
+first_inode="$(inode "$media_root/${digest:0:2}/$digest.png")"
+PR_MEDIA_ROOT="$media_root" \
+PR_MEDIA_BASE_URL=https://media.example.test/media \
+PR_MEDIA_PRUNE_COMMAND="$pruner" \
+PR_MEDIA_USED_PERCENT=0 \
+  "$uploader" "$source_file" >/dev/null
+[ "$(inode "$media_root/${digest:0:2}/$digest.png")" = "$first_inode" ]
+
+printf 'not media\n' >"$work_dir/rejected.txt"
+if PR_MEDIA_ROOT="$media_root" \
+  PR_MEDIA_BASE_URL=https://media.example.test/media \
+  "$uploader" "$work_dir/rejected.txt" >/dev/null 2>&1; then
+  printf 'uploader accepted an unsupported extension\n' >&2
+  exit 1
+fi
+
+if PR_MEDIA_ROOT="$media_root" \
+  PR_MEDIA_BASE_URL=https://media.example.test/media \
+  PR_MEDIA_MAX_IMAGE_BYTES=1 \
+  "$uploader" "$source_file" >/dev/null 2>&1; then
+  printf 'uploader accepted an oversized image\n' >&2
+  exit 1
+fi
+
+grep -Fq 'PR_MEDIA_SIZE_BYTES:-10737418240' "$installer"
+grep -Fq 'loop,nofail,nodev,nosuid,noexec,discard' "$installer"
+grep -Fq 'docker.service.d/sago-cloud-pr-media-mount.conf' "$installer"
+grep -Fq 'losetup -j "$media_image"' "$installer"
+grep -Fq '/usr/local/libexec/sago-cloud-pr-media-prune' "$installer"
+grep -Fq '/srv/pr-media:/srv/pr-media:ro' "$edge_compose"
+grep -Fq '/srv/pr-media:/srv/pr-media' "$worker_compose"
+grep -Fq 'path_regexp supported_media' "$caddyfile"
+grep -Fq 'respond 404' "$caddyfile"
+grep -Fq 'require_pr_media_mount' "$repo_root/scripts/deploy-edge"
+grep -Fq 'require_pr_media_mount' "$repo_root/scripts/deploy-minisago-worker"
+grep -Fq 'RequiresMountsFor=/srv/pr-media' \
+  "$repo_root/systemd/docker-pr-media-mount.conf"
+
+prune_root="$work_dir/prune"
+install -d "$prune_root/aa" "$work_dir/bin"
+old_file="$prune_root/aa/old.png"
+new_file="$prune_root/aa/new.png"
+printf old >"$old_file"
+sleep 1
+printf new >"$new_file"
+
+printf '%s\n' \
+  '#!/bin/sh' \
+  'if [ ! -e "$FAKE_DF_STATE" ]; then' \
+  '  : >"$FAKE_DF_STATE"' \
+  '  used=95%' \
+  'else' \
+  '  used=85%' \
+  'fi' \
+  'printf "Filesystem 1024-blocks Used Available Capacity Mounted on\n"' \
+  'printf "test 100 95 5 %s %s\n" "$used" "$2"' \
+  >"$work_dir/bin/df"
+chmod +x "$work_dir/bin/df"
+
+PATH="$work_dir/bin:$PATH" \
+FAKE_DF_STATE="$work_dir/df-state" \
+PR_MEDIA_ROOT="$prune_root" \
+  "$pruner"
+[ ! -e "$old_file" ]
+[ -e "$new_file" ]
+
+printf 'PR media is bounded, filtered, deduplicated, and capacity-pruned\n'

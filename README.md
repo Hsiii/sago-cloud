@@ -15,7 +15,7 @@ host, edge network, deployment tooling, or backup layout.
   secrets/              # production env files, never committed
   backups/
   state/
-/srv/videos/              # optional static files served by Caddy
+/srv/pr-media/             # dedicated, bounded PR-media filesystem
 ```
 
 Run `scripts/install-layout` after cloning this repository to
@@ -47,7 +47,8 @@ to the external `sago_cloud_data` network:
 - `bot-core`: the current Discord bot runtime, published by MiniSago.
 - `minisago-worker`: one always-on `chat,dev` Codex worker. It mounts one
   repo-scoped GitHub login, broker secret, state volume, and disposable
-  workspace.
+  workspace. It can publish bounded PR images and videos through the
+  `pr-media-upload` command.
 - `homepage`: the ARM64 Homepage image, attached only to the frontend
   network. Authentication, bookmarks, and private wallpaper storage live in
   Supabase.
@@ -67,6 +68,39 @@ The worker uses one dedicated `gh` login. The broker binds its secret to
 Only owner requests can route to Sol. Remote mutation requires an explicit
 owner request, protected branches reject direct and force pushes, and provider
 credentials are not mounted.
+
+## PR media
+
+PR screenshots and short demo videos live on a dedicated 10 GiB ext4 filesystem
+instead of the host root filesystem. The filesystem is backed by a sparse image
+under `/srv/sago-cloud/state`, mounted with `nodev,nosuid,noexec,discard`, and
+cannot consume more than its configured capacity. Discard returns blocks from
+expired files to the host filesystem, so physical usage follows live media
+rather than historical uploads. Caddy mounts it read-only; the MiniSago worker
+mounts it read-write. Docker requires the dedicated mount at boot and will not
+fall back to writing through the underlying host directory.
+
+Provision the filesystem and its daily capacity-check timer once, before
+deploying the edge or worker stacks:
+
+```bash
+bun run install:pr-media
+```
+
+Set `PR_MEDIA_BASE_URL` in `secrets/minisago-worker.env` to the public media
+route, such as `https://bot.example.com/media`. From an agent job, publish a
+supported file and paste the returned Markdown into the PR body:
+
+```bash
+pr-media-upload /workspace/worktrees/example/screenshot.png
+```
+
+Uploads accept PNG, JPEG, GIF, WebP, MP4, and WebM files. Images are limited to
+50 MiB and videos to 100 MiB by default. Content-addressed names deduplicate
+identical files, and Caddy refuses other extensions. Media does not expire while
+the filesystem is below 90% capacity. At 90%, the oldest files are removed until
+usage falls to 85%, leaving room for new uploads while preserving recent PR
+artifacts.
 
 Homepage is the only public service configured to use the local PostgreSQL
 alias. Its one-shot migration container attaches only to `sago_cloud_data`; the

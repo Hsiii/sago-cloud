@@ -44,11 +44,18 @@
 	}
 
 	redir /bot /bot/ 308
-	redir /videos /videos/ 308
+	redir /media /media/ 308
 
-	handle_path /videos/* {
-		root * /srv/videos
-		file_server
+	handle_path /media/* {
+		@supported_media path_regexp supported_media \.(?:gif|jpe?g|mp4|png|webm|webp)$
+
+		handle @supported_media {
+			header Cache-Control "public, max-age=31536000, immutable"
+			root * /srv/pr-media
+			file_server
+		}
+
+		respond 404
 	}
 
 	handle_path /bot/* {

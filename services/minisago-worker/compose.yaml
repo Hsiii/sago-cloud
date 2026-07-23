@@ -31,6 +31,9 @@ services:
       - minisago-github:/home/bun/.config/gh
       - minisago-state:/var/lib/minisago
       - minisago-workspace:/workspace
+      - /srv/pr-media:/srv/pr-media
+      - /srv/sago-cloud/operations/scripts/pr-media-upload:/usr/local/bin/pr-media-upload:ro
+      - /srv/sago-cloud/operations/scripts/pr-media-prune:/usr/local/bin/pr-media-prune:ro
 
 networks:
   frontend:

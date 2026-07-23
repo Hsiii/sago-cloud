@@ -54,7 +54,7 @@
 	}
 }
 
-{$MEDIA_DOMAIN} {
+http://{$MEDIA_DOMAIN} {
 	log
 
 	header {

@@ -237,6 +237,12 @@ verified;
 `cloudflared` and Caddy share the private frontend Docker network. No Tunnel
 identifier, credential, or provider token is stored in this repository.
 
+The media hostname is the deliberate exception: it routes to
+`http://edge:80` on that same private network. Cloudflare still terminates
+public HTTPS, while the HTTP-only origin avoids a circular first-certificate
+bootstrap for a hostname reachable exclusively through the Tunnel. Caddy has no
+published host port, so this origin is not reachable outside Docker.
+
 Keep the directory traversable by the host deploy user and the files readable
 only by the image's non-root user:
 

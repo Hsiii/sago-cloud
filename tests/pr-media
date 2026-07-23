@@ -150,7 +150,7 @@ grep -Fq 'pr-media-optimize:/usr/local/bin/pr-media-optimize:ro' "$worker_compos
 grep -Fq 'pr-media-add-to-pr:/usr/local/bin/pr-media-add-to-pr:ro' "$worker_compose"
 grep -Fq 'pr-media-pin:/usr/local/bin/pr-media-pin:ro' "$worker_compose"
 grep -Fq 'path_regexp supported_media' "$caddyfile"
-grep -Fq '{$MEDIA_DOMAIN}' "$caddyfile"
+grep -Fq 'http://{$MEDIA_DOMAIN}' "$caddyfile"
 grep -Fq 's-maxage=31536000' "$caddyfile"
 grep -Fq 'respond 404' "$caddyfile"
 grep -Fq 'require_pr_media_mount' "$repo_root/scripts/deploy-edge"

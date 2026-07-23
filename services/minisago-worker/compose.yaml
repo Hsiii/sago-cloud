@@ -11,7 +11,7 @@ x-worker: &worker
   restart: unless-stopped
   init: true
   cpus: 1.25
-  mem_limit: 2g
+  mem_limit: 8g
   logging: *default-logging
   labels:
     dev.hsichen.sago-cloud.managed: "true"

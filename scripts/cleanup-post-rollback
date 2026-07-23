@@ -27,9 +27,11 @@ mapfile -t managed_containers < <(
   "${DOCKER[@]}" ps -aq --filter label=dev.hsichen.sago-cloud.managed=true
 )
 for container in "${managed_containers[@]}"; do
-  state="$("${DOCKER[@]}" inspect --format '{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{end}}' "$container")"
-  if [[ "$state" != "running" && "$state" != "running healthy" ]]; then
-    printf 'Managed container is not healthy enough for cleanup: %s (%s)\n' "$container" "$state" >&2
+  status="$("${DOCKER[@]}" inspect --format '{{.State.Status}}' "$container")"
+  health="$("${DOCKER[@]}" inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container")"
+  if [[ "$status" != "running" || ("$health" != "none" && "$health" != "healthy") ]]; then
+    printf 'Managed container is not healthy enough for cleanup: %s (status=%s health=%s)\n' \
+      "$container" "$status" "$health" >&2
     exit 1
   fi
 done

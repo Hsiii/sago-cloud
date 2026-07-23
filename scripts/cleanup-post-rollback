@@ -79,9 +79,7 @@ else
 fi
 
 "${SUDO[@]}" rm -rf -- /home/ubuntu/arm-rehearsal /home/ubuntu/arm-cutover-final
-"${SUDO[@]}" rm -f -- \
-  /srv/sago-cloud/secrets/brawl-claimer.env \
-  /srv/sago-cloud/secrets/recipe.env
+"${SUDO[@]}" rm -f -- /srv/sago-cloud/secrets/recipe.env
 "${SUDO[@]}" rm -- "$legacy_root"
 "${DOCKER[@]}" image prune --force --filter dangling=true
 

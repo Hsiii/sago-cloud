@@ -2,7 +2,7 @@
 set -euo pipefail
 
 usage() {
-  printf 'Usage: pr-media-upload <image-or-video>\n' >&2
+  printf 'Usage: pr-media-upload [--repo OWNER/REPO --pr NUMBER] <image-or-video>\n' >&2
   exit 2
 }
 
@@ -14,9 +14,53 @@ file_size() {
   fi
 }
 
-[ "$#" -eq 1 ] || usage
+repo=
+pr_number=
+source_argument=
 
-source_path="$(realpath -- "$1")"
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --repo)
+      [ "$#" -ge 2 ] || usage
+      repo="$2"
+      shift 2
+      ;;
+    --pr)
+      [ "$#" -ge 2 ] || usage
+      pr_number="$2"
+      shift 2
+      ;;
+    --)
+      shift
+      [ "$#" -eq 1 ] || usage
+      source_argument="$1"
+      shift
+      ;;
+    -*)
+      usage
+      ;;
+    *)
+      [ -z "$source_argument" ] || usage
+      source_argument="$1"
+      shift
+      ;;
+  esac
+done
+
+[ -n "$source_argument" ] || usage
+if { [ -n "$repo" ] && [ -z "$pr_number" ]; } ||
+  { [ -z "$repo" ] && [ -n "$pr_number" ]; }; then
+  printf -- '--repo and --pr must be provided together.\n' >&2
+  exit 2
+fi
+if [ -n "$repo" ] &&
+  { ! [[ "$repo" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] ||
+    ! [[ "$pr_number" =~ ^[1-9][0-9]*$ ]]; }; then
+  printf 'Invalid GitHub repository or PR number.\n' >&2
+  exit 2
+fi
+
+source_path="$(realpath -- "$source_argument")"
 [ -f "$source_path" ] || usage
 
 media_root="${PR_MEDIA_ROOT:-/srv/pr-media}"
@@ -110,6 +154,14 @@ if [ ! -f "$destination" ]; then
   install -m 0644 -- "$optimized_path" "$temporary"
   mv -- "$temporary" "$destination"
   temporary=
+fi
+
+if [ -n "$repo" ]; then
+  repo_owner="${repo%%/*}"
+  repo_name="${repo#*/}"
+  reference_dir="$media_root/.refs/$digest/$repo_owner/$repo_name"
+  install -d -m 0755 "$reference_dir"
+  install -m 0644 /dev/null "$reference_dir/$pr_number"
 fi
 
 if command -v "$pruner" >/dev/null 2>&1; then

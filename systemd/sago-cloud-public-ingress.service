@@ -1,0 +1,25 @@
+[Unit]
+Description=Verify Sago Cloud public ingress through Cloudflare
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=nobody
+Group=nogroup
+EnvironmentFile=/srv/sago-cloud/secrets/public-ingress.env
+ExecStart=/usr/local/libexec/sago-cloud-public-ingress/current/scripts/verify-public-ingress
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictSUIDSGID=true
+SystemCallArchitectures=native
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

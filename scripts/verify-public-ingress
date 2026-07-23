@@ -3,13 +3,35 @@ set -euo pipefail
 
 homepage_url="${HOMEPAGE_URL:-}"
 obi_url="${OBI_URL:-}"
+homepage_expected_status="${HOMEPAGE_EXPECTED_STATUS:-200}"
+obi_expected_status="${OBI_EXPECTED_STATUS:-401}"
 
-for url in "$homepage_url" "$obi_url"; do
+for target in \
+  "$homepage_url:$homepage_expected_status" \
+  "$obi_url:$obi_expected_status"; do
+  url="${target%:*}"
+  expected_status="${target##*:}"
+
   if [[ ! "$url" =~ ^https://[^/]+/?$ ]]; then
     printf 'Set HOMEPAGE_URL and OBI_URL to HTTPS origins before verifying public ingress.\n' >&2
     exit 1
   fi
 
-  curl --fail --silent --show-error --max-time 15 --output /dev/null "$url"
-  printf 'Verified public ingress: %s\n' "$url"
+  if [[ ! "$expected_status" =~ ^[1-5][0-9]{2}$ ]]; then
+    printf 'Expected HTTP statuses must be three-digit values.\n' >&2
+    exit 1
+  fi
+
+  actual_status="$(
+    curl --silent --show-error --max-time 15 --output /dev/null \
+      --write-out '%{http_code}' "$url"
+  )"
+
+  if [[ "$actual_status" != "$expected_status" ]]; then
+    printf 'Unexpected public ingress status for %s: expected %s, received %s\n' \
+      "$url" "$expected_status" "$actual_status" >&2
+    exit 1
+  fi
+
+  printf 'Verified public ingress: %s (%s)\n' "$url" "$actual_status"
 done

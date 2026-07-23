@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
+
+if [ ! -s "$SECRETS_ROOT/pr-media-api.env" ]; then
+  printf 'Create %s/pr-media-api.env before deploying the PR media API.\n' \
+    "$SECRETS_ROOT" >&2
+  exit 1
+fi
+
+if [ "$(id -u)" -eq 0 ]; then
+  SUDO=()
+else
+  SUDO=(sudo -n)
+fi
+
+"${SUDO[@]}" install -d -o root -g root -m 0700 \
+  "$SECRETS_ROOT/pr-media-tokens"
+require_pr_media_mount
+compose_pull pr-media-api
+compose_up pr-media-api
+compose pr-media-api exec -T api \
+  bun -e 'process.exit((await fetch("http://127.0.0.1:3000/health")).ok?0:1)'

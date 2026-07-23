@@ -8,6 +8,7 @@ const allowedServices = new Set([
   "bot-core",
   "minisago",
   "minisago-worker",
+  "pr-media-api",
   "obi",
   "proxy",
   "homepage",

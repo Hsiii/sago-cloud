@@ -49,6 +49,9 @@ to the external `sago_cloud_data` network:
   repo-scoped GitHub login, broker secret, state volume, and disposable
   workspace. It can publish bounded PR images and videos through the
   `pr-media-upload` command.
+- `pr-media-api`: a token-authenticated upload endpoint for Codex installations
+  that do not have Oracle access. It has no published host port and is reachable
+  only through Caddy and Cloudflare Tunnel.
 - `homepage`: the ARM64 Homepage image, attached only to the frontend
   network. Authentication, bookmarks, and private wallpaper storage live in
   Supabase.
@@ -106,6 +109,26 @@ append the returned Markdown to a managed section of the existing PR body:
 ```bash
 pr-media-upload --update-pr-body screenshot.png
 ```
+
+Remote Codex installations use `POST /api/upload` through the public media
+hostname. Each person gets a separately revocable bearer token. Tokens are
+stored only as SHA-256 hashes on Oracle, default to 50 uploads and 500 MB per
+UTC day, and share the same validation, optimization, deduplication, retention,
+and bounded filesystem as local uploads. Public API videos are capped at 95 MB
+to remain below Cloudflare's 100 MB request limit.
+
+Create a friend's token on Oracle and send the printed two-line configuration
+through a secure channel:
+
+```bash
+scripts/pr-media-token create alice
+scripts/pr-media-token list
+scripts/pr-media-token revoke alice
+```
+
+The `human-out-of-loop` PR skill stores that configuration at
+`~/.config/pr-media/config`; it never places the bearer token in a PR, command
+argument, or repository.
 
 Repeated uploads are content-deduplicated, and repeated PR-body updates do not
 duplicate the same media entry. Existing PR body content remains untouched.
@@ -174,6 +197,7 @@ bun run deploy:cloudflared
 bun run deploy:bot-core
 bun run deploy:minisago
 bun run deploy:minisago-worker
+bun run deploy:pr-media-api
 bun run deploy:homepage
 bun run deploy:obi
 bun run deploy:postgres
@@ -300,6 +324,8 @@ cloudflared/credentials.json
 bot-core.env
 homepage.env
 minisago-worker.env
+pr-media-api.env
+pr-media-tokens/
 obi.env
 postgres.env
 public-ingress.env

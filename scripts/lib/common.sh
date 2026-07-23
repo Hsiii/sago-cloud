@@ -10,7 +10,7 @@ STATE_ROOT="${STATE_ROOT:-"$SAGO_CLOUD_ROOT/state"}"
 EDGE_NETWORK_NAME="${EDGE_NETWORK_NAME:-sago_cloud_edge}"
 DATA_NETWORK_NAME="${DATA_NETWORK_NAME:-sago_cloud_data}"
 NETWORK_NAMES=("$EDGE_NETWORK_NAME" "$DATA_NETWORK_NAME")
-STACKS=(bot-core homepage obi minisago-worker edge)
+STACKS=(bot-core homepage obi minisago-worker pr-media-api edge)
 VOLUME_NAMES=(
   sago_cloud_caddy-data
   sago_cloud_caddy-config
@@ -67,7 +67,11 @@ ensure_docker_volumes() {
 }
 
 compose_pull() {
-  compose "$1" pull
+  if [ "$1" = pr-media-api ]; then
+    compose "$1" build --pull
+  else
+    compose "$1" pull
+  fi
 }
 
 compose_up() {

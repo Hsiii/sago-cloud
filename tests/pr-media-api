@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+server="$repo_root/services/pr-media-api/server.ts"
+compose="$repo_root/services/pr-media-api/compose.yaml"
+caddyfile="$repo_root/edge/Caddyfile"
+work_dir="$(mktemp -d)"
+server_pid=
+
+cleanup() {
+  if [ -n "$server_pid" ]; then
+    kill "$server_pid" 2>/dev/null || true
+    wait "$server_pid" 2>/dev/null || true
+  fi
+  rm -rf -- "$work_dir"
+}
+trap cleanup EXIT
+
+token='test-token-abcdefghijklmnopqrstuvwxyz-0123456789'
+token_digest="$(printf '%s' "$token" | sha256sum | awk '{print $1}')"
+install -d "$work_dir/media" "$work_dir/tokens"
+printf '%s\n' "$token_digest" >"$work_dir/tokens/friend"
+
+fake_uploader="$work_dir/fake-uploader"
+printf '%s\n' \
+  '#!/bin/sh' \
+  '[ "$1" = "--repo" ] && [ "$2" = "Hsiii/example" ]' \
+  '[ "$3" = "--pr" ] && [ "$4" = "42" ]' \
+  '[ -s "$5" ]' \
+  'printf "![PR preview](https://media.example.test/test.png)\\n"' \
+  >"$fake_uploader"
+chmod +x "$fake_uploader"
+
+source_file="$work_dir/preview.png"
+printf '%s' \
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=' |
+  base64 --decode >"$source_file"
+
+port="$((41000 + RANDOM % 20000))"
+PORT="$port" \
+PR_MEDIA_ROOT="$work_dir/media" \
+PR_MEDIA_TOKEN_DIR="$work_dir/tokens" \
+PR_MEDIA_UPLOAD_COMMAND="$fake_uploader" \
+PR_MEDIA_DAILY_BYTES_PER_TOKEN=1000 \
+PR_MEDIA_DAILY_UPLOADS_PER_TOKEN=1 \
+PR_MEDIA_MAX_REQUEST_BYTES=1000 \
+  bun "$server" >"$work_dir/server.log" 2>&1 &
+server_pid="$!"
+
+for _ in 1 2 3 4 5; do
+  if curl --fail --silent "http://127.0.0.1:$port/health" >/dev/null; then
+    break
+  fi
+  sleep 1
+done
+curl --fail --silent "http://127.0.0.1:$port/health" >/dev/null
+
+status="$(
+  curl --silent --output "$work_dir/unauthorized" --write-out '%{http_code}' \
+    --request POST \
+    --header 'X-PR-Media-Repo: Hsiii/example' \
+    --header 'X-PR-Media-PR: 42' \
+    --header 'X-PR-Media-Filename: preview.png' \
+    --data-binary "@$source_file" \
+    "http://127.0.0.1:$port/api/upload"
+)"
+[ "$status" = 401 ]
+
+status="$(
+  curl --silent --output "$work_dir/uploaded" --write-out '%{http_code}' \
+    --request POST \
+    --header "Authorization: Bearer $token" \
+    --header 'X-PR-Media-Repo: Hsiii/example' \
+    --header 'X-PR-Media-PR: 42' \
+    --header 'X-PR-Media-Filename: preview.png' \
+    --data-binary "@$source_file" \
+    "http://127.0.0.1:$port/api/upload"
+)"
+[ "$status" = 201 ]
+grep -Fqx '![PR preview](https://media.example.test/test.png)' \
+  "$work_dir/uploaded"
+
+status="$(
+  curl --silent --output "$work_dir/quota" --write-out '%{http_code}' \
+    --request POST \
+    --header "Authorization: Bearer $token" \
+    --header 'X-PR-Media-Repo: Hsiii/example' \
+    --header 'X-PR-Media-PR: 42' \
+    --header 'X-PR-Media-Filename: preview.png' \
+    --data-binary "@$source_file" \
+    "http://127.0.0.1:$port/api/upload"
+)"
+[ "$status" = 429 ]
+
+quota_file="$(find "$work_dir/media/.api-usage" -type f -name friend.json)"
+grep -Fq '"uploads":1' "$quota_file"
+grep -Fq 'read_only: true' "$compose"
+grep -Fq -- '- ALL' "$compose"
+grep -Fq 'no-new-privileges:true' "$compose"
+grep -Fq '/srv/sago-cloud/secrets/pr-media-tokens:/run/secrets/pr-media-tokens:ro' \
+  "$compose"
+grep -Fq 'reverse_proxy pr-media-api:3000' "$caddyfile"
+grep -Fq 'Cache-Control no-store' "$caddyfile"
+grep -Fq 'max_size 95000000' "$caddyfile"
+
+if grep -Eq '(^|[[:space:]])ports:' "$compose"; then
+  printf 'PR media API must not publish host ports\n' >&2
+  exit 1
+fi
+
+printf 'PR media API requires revocable tokens and enforces bounded quotas\n'

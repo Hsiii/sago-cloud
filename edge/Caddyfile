@@ -58,18 +58,35 @@ http://{$MEDIA_DOMAIN} {
 	log
 
 	header {
-		Access-Control-Allow-Origin *
-		Cache-Control "public, max-age=31536000, s-maxage=31536000, immutable"
-		Content-Security-Policy "default-src 'none'; sandbox"
-		Cross-Origin-Resource-Policy cross-origin
 		Referrer-Policy no-referrer
 		X-Content-Type-Options nosniff
 		-Server
 	}
 
+	@upload path /api/upload
+
+	handle @upload {
+		request_body {
+			max_size 95000000
+		}
+
+		header {
+			Cache-Control no-store
+		}
+
+		reverse_proxy pr-media-api:3000
+	}
+
 	@supported_media path_regexp supported_media ^/[0-9a-f]{2}/[0-9a-f]{64}\.(?:gif|jpg|mp4|png|webp)$
 
 	handle @supported_media {
+		header {
+			Access-Control-Allow-Origin *
+			Cache-Control "public, max-age=31536000, s-maxage=31536000, immutable"
+			Content-Security-Policy "default-src 'none'; sandbox"
+			Cross-Origin-Resource-Policy cross-origin
+		}
+
 		root * /srv/pr-media
 		file_server
 	}

@@ -19,32 +19,18 @@ x-worker: &worker
     - frontend
 
 services:
-  worker-read:
+  worker:
     <<: *worker
     env_file:
-      - /srv/sago-cloud/secrets/minisago-worker-read.env
+      - /srv/sago-cloud/secrets/minisago-worker.env
     environment:
-      MINISAGO_WORKER_ID: oracle-read
-      MINISAGO_WORKER_CAPABILITIES: chat,dev-read
+      MINISAGO_WORKER_ID: oracle
+      MINISAGO_WORKER_CAPABILITIES: chat,dev
     volumes:
       - minisago-codex:/home/bun/.codex
       - minisago-github:/home/bun/.config/gh
-      - minisago-state-read:/var/lib/minisago
-      - minisago-workspace-read:/workspace
-
-  worker-write:
-    <<: *worker
-    env_file:
-      - /srv/sago-cloud/secrets/minisago-worker-write.env
-    environment:
-      MINISAGO_WORKER_ID: oracle-write
-      MINISAGO_WORKER_CAPABILITIES: dev-write
-      MINISAGO_MAX_CONCURRENT_JOBS: 1
-    volumes:
-      - minisago-codex:/home/bun/.codex
-      - minisago-github:/home/bun/.config/gh
-      - minisago-state-write:/var/lib/minisago
-      - minisago-workspace-write:/workspace
+      - minisago-state:/var/lib/minisago
+      - minisago-workspace:/workspace
 
 networks:
   frontend:
@@ -58,15 +44,9 @@ volumes:
   minisago-github:
     external: true
     name: sago_cloud_minisago-github
-  minisago-state-read:
+  minisago-state:
     external: true
-    name: sago_cloud_minisago-state-read
-  minisago-state-write:
+    name: sago_cloud_minisago-state
+  minisago-workspace:
     external: true
-    name: sago_cloud_minisago-state-write
-  minisago-workspace-read:
-    external: true
-    name: sago_cloud_minisago-workspace-read
-  minisago-workspace-write:
-    external: true
-    name: sago_cloud_minisago-workspace-write
+    name: sago_cloud_minisago-workspace

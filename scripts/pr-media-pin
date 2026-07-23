@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  printf 'Usage: pr-media-pin [--remove] <media-url-or-path>\n' >&2
+  exit 2
+}
+
+remove=0
+if [ "${1:-}" = --remove ]; then
+  remove=1
+  shift
+fi
+[ "$#" -eq 1 ] || usage
+
+target="${1%%\?*}"
+target="${target%%\#*}"
+filename="$(basename -- "$target")"
+if ! [[ "$filename" =~ ^([0-9a-f]{64})\.(gif|jpg|mp4|png|webp)$ ]]; then
+  printf 'Expected a content-addressed PR media URL or path.\n' >&2
+  exit 2
+fi
+
+digest="${BASH_REMATCH[1]}"
+media_root="${PR_MEDIA_ROOT:-/srv/pr-media}"
+pin_root="$media_root/.pins"
+pin_path="$pin_root/$digest"
+media_path="$media_root/${digest:0:2}/$filename"
+
+if [ "$remove" = 1 ]; then
+  rm -f -- "$pin_path"
+  printf 'Unpinned %s\n' "$digest"
+else
+  if [ ! -f "$media_path" ]; then
+    printf 'Media does not exist in %s.\n' "$media_root" >&2
+    exit 1
+  fi
+  install -d -m 0755 "$pin_root"
+  install -m 0644 /dev/null "$pin_path"
+  printf 'Pinned %s\n' "$digest"
+fi

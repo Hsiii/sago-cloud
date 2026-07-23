@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
+shopt -s nullglob
 
 media_root="${PR_MEDIA_ROOT:-/srv/pr-media}"
 high_watermark="${PR_MEDIA_HIGH_WATERMARK:-90}"
 low_watermark="${PR_MEDIA_LOW_WATERMARK:-85}"
+emergency_watermark="${PR_MEDIA_EMERGENCY_WATERMARK:-95}"
+emergency_low_watermark="${PR_MEDIA_EMERGENCY_LOW_WATERMARK:-80}"
 fallback_lock=
 
 cleanup() {
@@ -13,9 +16,14 @@ trap cleanup EXIT
 
 if ! [[ "$high_watermark" =~ ^[0-9]+$ ]] ||
   ! [[ "$low_watermark" =~ ^[0-9]+$ ]] ||
-  [ "$high_watermark" -gt 100 ] ||
-  [ "$low_watermark" -ge "$high_watermark" ]; then
-  printf 'Media watermarks must satisfy 0 <= low < high <= 100.\n' >&2
+  ! [[ "$emergency_watermark" =~ ^[0-9]+$ ]] ||
+  ! [[ "$emergency_low_watermark" =~ ^[0-9]+$ ]] ||
+  [ "$emergency_watermark" -gt 100 ] ||
+  [ "$high_watermark" -ge "$emergency_watermark" ] ||
+  [ "$low_watermark" -ge "$high_watermark" ] ||
+  [ "$emergency_low_watermark" -ge "$low_watermark" ] ||
+  [ "$emergency_low_watermark" -ge "$emergency_watermark" ]; then
+  printf 'Media watermarks must satisfy emergency-low < low < high < emergency <= 100.\n' >&2
   exit 1
 fi
 
@@ -23,7 +31,8 @@ used_percent() {
   if [ -n "${PR_MEDIA_USED_PERCENT:-}" ]; then
     printf '%s\n' "$PR_MEDIA_USED_PERCENT"
   else
-    df -P "$media_root" | awk 'NR == 2 { value=$5; gsub(/%/, "", value); print value }'
+    df -P "$media_root" |
+      awk 'NR == 2 { value=$5; gsub(/%/, "", value); print value }'
   fi
 }
 
@@ -33,6 +42,95 @@ modified_time() {
   else
     stat -f %m -- "$1"
   fi
+}
+
+digest_for_path() {
+  local filename
+  filename="$(basename -- "$1")"
+  printf '%s\n' "${filename%%.*}"
+}
+
+is_pinned() {
+  [ -f "$media_root/.pins/$(digest_for_path "$1")" ]
+}
+
+pr_state_keys=()
+pr_state_values=()
+
+pr_state() {
+  local repo="$1"
+  local pr_number="$2"
+  local key="$repo#$pr_number"
+  local state
+  local index
+
+  for index in "${!pr_state_keys[@]}"; do
+    if [ "${pr_state_keys[$index]}" = "$key" ]; then
+      resolved_pr_state="${pr_state_values[$index]}"
+      return
+    fi
+  done
+
+  state="$(
+    gh api "repos/$repo/pulls/$pr_number" --jq .state 2>/dev/null ||
+      printf 'unknown'
+  )"
+  pr_state_keys[${#pr_state_keys[@]}]="$key"
+  pr_state_values[${#pr_state_values[@]}]="$state"
+  resolved_pr_state="$state"
+}
+
+is_normally_evictable() {
+  local media_path="$1"
+  local digest
+  local reference
+  local relative
+  local repo_owner
+  local repo_name
+  local pr_number
+
+  is_pinned "$media_path" && return 1
+  digest="$(digest_for_path "$media_path")"
+
+  for reference in "$media_root/.refs/$digest"/*/*/*; do
+    [ -f "$reference" ] || continue
+    relative="${reference#"$media_root/.refs/$digest/"}"
+    repo_owner="${relative%%/*}"
+    relative="${relative#*/}"
+    repo_name="${relative%%/*}"
+    pr_number="${relative##*/}"
+
+    pr_state "$repo_owner/$repo_name" "$pr_number"
+    if [ "$resolved_pr_state" != closed ]; then
+      return 1
+    fi
+  done
+
+  return 0
+}
+
+media_paths_by_age() {
+  local media_path
+  local filename
+
+  for media_path in "$media_root"/[0-9a-f][0-9a-f]/*; do
+    [ -f "$media_path" ] || continue
+    filename="$(basename -- "$media_path")"
+    [[ "$filename" =~ ^[0-9a-f]{64}\.(gif|jpg|mp4|png|webp)$ ]] || continue
+    printf '%s\t%s\n' "$(modified_time "$media_path")" "$media_path"
+  done | sort -n | cut -f 2-
+}
+
+remove_media() {
+  local media_path="$1"
+  local reason="$2"
+  local digest
+
+  digest="$(digest_for_path "$media_path")"
+  rm -f -- "$media_path"
+  find "$media_root/.refs/$digest" -type f -delete 2>/dev/null || true
+  find "$media_root/.refs/$digest" -depth -type d -empty -delete 2>/dev/null || true
+  printf 'pr-media: evicted %s media %s\n' "$reason" "$(basename -- "$media_path")"
 }
 
 if [ "${PR_MEDIA_LOCK_HELD:-0}" != 1 ]; then
@@ -48,34 +146,41 @@ if [ "${PR_MEDIA_LOCK_HELD:-0}" != 1 ]; then
   fi
 fi
 
-current_usage="$(used_percent)"
-if ! [[ "$current_usage" =~ ^[0-9]+$ ]]; then
+initial_usage="$(used_percent)"
+if ! [[ "$initial_usage" =~ ^[0-9]+$ ]]; then
   printf 'Could not determine media filesystem usage.\n' >&2
   exit 1
 fi
 
-if [ "$current_usage" -lt "$high_watermark" ]; then
+if [ "$initial_usage" -lt "$high_watermark" ]; then
   exit 0
 fi
 
 while IFS= read -r media_path; do
-  rm -f -- "$media_path"
-  current_usage="$(used_percent)"
-  if [ "$current_usage" -le "$low_watermark" ]; then
+  is_normally_evictable "$media_path" || continue
+  remove_media "$media_path" normal
+  if [ "$(used_percent)" -le "$low_watermark" ]; then
     break
   fi
-done < <(
-  while IFS= read -r -d '' media_path; do
-    printf '%s\t%s\n' "$(modified_time "$media_path")" "$media_path"
-  done < <(find "$media_root" -mindepth 2 -type f -print0) |
-    sort -n |
-    cut -f 2-
-)
+done < <(media_paths_by_age)
+
+if [ "$initial_usage" -ge "$emergency_watermark" ]; then
+  while IFS= read -r media_path; do
+    [ -f "$media_path" ] || continue
+    is_pinned "$media_path" && continue
+    remove_media "$media_path" emergency
+    if [ "$(used_percent)" -le "$emergency_low_watermark" ]; then
+      break
+    fi
+  done < <(media_paths_by_age)
+fi
 
 find "$media_root" -mindepth 1 -type d ! -name .upload.lock.d -empty -delete
 
-if [ "$(used_percent)" -gt "$low_watermark" ]; then
-  printf 'Media usage remains above %s%% because no more media can be removed.\n' \
-    "$low_watermark" >&2
-  exit 1
+if [ "$initial_usage" -ge "$emergency_watermark" ]; then
+  if [ "$(used_percent)" -gt "$emergency_low_watermark" ]; then
+    printf 'Media usage remains above %s%% because no more unpinned media can be removed.\n' \
+      "$emergency_low_watermark" >&2
+    exit 1
+  fi
 fi

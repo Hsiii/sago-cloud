@@ -94,7 +94,10 @@ and `PR_MEDIA_BASE_URL` in `secrets/minisago-worker.env`, for example
 supported file and paste the returned Markdown into the PR body:
 
 ```bash
-pr-media-upload /workspace/worktrees/example/screenshot.png
+pr-media-upload \
+  --repo Hsiii/example \
+  --pr 123 \
+  /workspace/worktrees/example/screenshot.png
 ```
 
 Uploads validate file contents and accept PNG, JPEG, GIF, WebP, MP4, and WebM.
@@ -109,9 +112,24 @@ hostname only serves exact hashed media paths, with byte ranges and validators
 provided by Caddy. One-year browser and shared-cache directives let Cloudflare
 serve repeat downloads at the edge; the supported extensions are cacheable by
 Cloudflare's default CDN policy, so no broad "cache everything" rule is needed.
-Media does not expire while the filesystem is below 90% capacity. At 90%, the
-oldest files are removed until usage falls to 85%, leaving room for new uploads
-while preserving recent PR artifacts.
+Media does not expire while the filesystem is below 90% capacity. At 90%, media
+without a PR reference and media whose referenced PRs are all closed is removed
+oldest-first until usage falls to 85%. Open PR media and media whose GitHub
+status cannot be checked are protected during normal cleanup.
+
+At 95%, emergency cleanup removes the oldest unpinned media, including open-PR
+media, until usage falls to 80%. This second stage prevents the bounded
+filesystem from filling when open PRs retain too much data. Pin long-lived media
+explicitly; pins survive both cleanup stages:
+
+```bash
+pr-media-pin https://media.example.com/ab/<hash>.png
+pr-media-pin --remove https://media.example.com/ab/<hash>.png
+```
+
+The host timer checks PR state through the Oracle user's authenticated GitHub
+CLI configuration. Cleanup emits an event for every eviction but sends no
+capacity warning before either threshold.
 
 Homepage is the only public service configured to use the local PostgreSQL
 alias. Its one-shot migration container attaches only to `sago_cloud_data`; the

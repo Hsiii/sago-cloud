@@ -4,6 +4,7 @@ set -euo pipefail
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 installer="$repo_root/scripts/install-pr-media-storage"
 uploader="$repo_root/scripts/pr-media-upload"
+pin_command="$repo_root/scripts/pr-media-pin"
 pruner="$repo_root/scripts/pr-media-prune"
 caddyfile="$repo_root/edge/Caddyfile"
 worker_compose="$repo_root/services/minisago-worker/compose.yaml"
@@ -49,6 +50,21 @@ PR_MEDIA_USED_PERCENT=0 \
   "$uploader" "$source_file" >/dev/null
 [ "$(inode "$media_root/${digest:0:2}/$digest.png")" = "$first_inode" ]
 
+PR_MEDIA_ROOT="$media_root" \
+PR_MEDIA_BASE_URL=https://media.example.test/media \
+PR_MEDIA_PRUNE_COMMAND="$pruner" \
+PR_MEDIA_OPTIMIZE=0 \
+PR_MEDIA_USED_PERCENT=0 \
+  "$uploader" --repo Hsiii/sago-cloud --pr 24 "$source_file" >/dev/null
+[ -f "$media_root/.refs/$digest/Hsiii/sago-cloud/24" ]
+
+PR_MEDIA_ROOT="$media_root" \
+  "$pin_command" "$media_root/${digest:0:2}/$digest.png" >/dev/null
+[ -f "$media_root/.pins/$digest" ]
+PR_MEDIA_ROOT="$media_root" \
+  "$pin_command" --remove "$media_root/${digest:0:2}/$digest.png" >/dev/null
+[ ! -e "$media_root/.pins/$digest" ]
+
 printf 'not media\n' >"$work_dir/rejected.txt"
 if PR_MEDIA_ROOT="$media_root" \
   PR_MEDIA_BASE_URL=https://media.example.test/media \
@@ -83,6 +99,7 @@ grep -Fq '/usr/local/libexec/sago-cloud-pr-media-prune' "$installer"
 grep -Fq '/srv/pr-media:/srv/pr-media:ro' "$edge_compose"
 grep -Fq '/srv/pr-media:/srv/pr-media' "$worker_compose"
 grep -Fq 'pr-media-optimize:/usr/local/bin/pr-media-optimize:ro' "$worker_compose"
+grep -Fq 'pr-media-pin:/usr/local/bin/pr-media-pin:ro' "$worker_compose"
 grep -Fq 'path_regexp supported_media' "$caddyfile"
 grep -Fq '{$MEDIA_DOMAIN}' "$caddyfile"
 grep -Fq 's-maxage=31536000' "$caddyfile"
@@ -92,32 +109,89 @@ grep -Fq 'require_pr_media_mount' "$repo_root/scripts/deploy-minisago-worker"
 grep -Fq 'RequiresMountsFor=/srv/pr-media' \
   "$repo_root/systemd/docker-pr-media-mount.conf"
 
-prune_root="$work_dir/prune"
-install -d "$prune_root/aa" "$work_dir/bin"
-old_file="$prune_root/aa/old.png"
-new_file="$prune_root/aa/new.png"
-printf old >"$old_file"
-sleep 1
-printf new >"$new_file"
+install -d "$work_dir/bin"
 
 printf '%s\n' \
   '#!/bin/sh' \
-  'if [ ! -e "$FAKE_DF_STATE" ]; then' \
-  '  : >"$FAKE_DF_STATE"' \
-  '  used=95%' \
-  'else' \
-  '  used=85%' \
-  'fi' \
+  'count=0' \
+  '[ ! -e "$FAKE_DF_STATE" ] || count="$(cat "$FAKE_DF_STATE")"' \
+  'printf "%s\n" "$((count + 1))" >"$FAKE_DF_STATE"' \
+  'if [ "$count" = 0 ]; then used="${FAKE_DF_INITIAL}%"; else used="${FAKE_DF_AFTER}%"; fi' \
   'printf "Filesystem 1024-blocks Used Available Capacity Mounted on\n"' \
   'printf "test 100 95 5 %s %s\n" "$used" "$2"' \
   >"$work_dir/bin/df"
 chmod +x "$work_dir/bin/df"
 
-PATH="$work_dir/bin:$PATH" \
-FAKE_DF_STATE="$work_dir/df-state" \
-PR_MEDIA_ROOT="$prune_root" \
-  "$pruner"
-[ ! -e "$old_file" ]
-[ -e "$new_file" ]
+printf '%s\n' \
+  '#!/bin/sh' \
+  'case "$*" in' \
+  '  *pulls/1*) printf "open\n" ;;' \
+  '  *pulls/2*) printf "closed\n" ;;' \
+  '  *) exit 1 ;;' \
+  'esac' \
+  >"$work_dir/bin/gh"
+chmod +x "$work_dir/bin/gh"
 
-printf 'PR media is bounded, filtered, deduplicated, and capacity-pruned\n'
+normal_root="$work_dir/normal-prune"
+closed_digest="$(printf closed | sha256sum | awk '{print $1}')"
+open_digest="$(printf open | sha256sum | awk '{print $1}')"
+pin_digest="$(printf pinned | sha256sum | awk '{print $1}')"
+install -d \
+  "$normal_root/${closed_digest:0:2}" \
+  "$normal_root/${open_digest:0:2}" \
+  "$normal_root/${pin_digest:0:2}" \
+  "$normal_root/.refs/$closed_digest/Hsiii/sago-cloud" \
+  "$normal_root/.refs/$open_digest/Hsiii/sago-cloud" \
+  "$normal_root/.pins"
+closed_file="$normal_root/${closed_digest:0:2}/$closed_digest.png"
+open_file="$normal_root/${open_digest:0:2}/$open_digest.png"
+pinned_file="$normal_root/${pin_digest:0:2}/$pin_digest.png"
+printf closed >"$closed_file"
+printf open >"$open_file"
+printf pinned >"$pinned_file"
+install -m 0644 /dev/null "$normal_root/.refs/$closed_digest/Hsiii/sago-cloud/2"
+install -m 0644 /dev/null "$normal_root/.refs/$open_digest/Hsiii/sago-cloud/1"
+install -m 0644 /dev/null "$normal_root/.pins/$pin_digest"
+
+PATH="$work_dir/bin:$PATH" \
+FAKE_DF_STATE="$work_dir/normal-df-state" \
+FAKE_DF_INITIAL=90 \
+FAKE_DF_AFTER=85 \
+PR_MEDIA_ROOT="$normal_root" \
+  "$pruner"
+[ ! -e "$closed_file" ]
+[ -e "$open_file" ]
+[ -e "$pinned_file" ]
+
+PATH="$work_dir/bin:$PATH" \
+FAKE_DF_STATE="$work_dir/protected-df-state" \
+FAKE_DF_INITIAL=92 \
+FAKE_DF_AFTER=92 \
+PR_MEDIA_ROOT="$normal_root" \
+  "$pruner"
+[ -e "$open_file" ]
+[ -e "$pinned_file" ]
+
+emergency_root="$work_dir/emergency-prune"
+install -d \
+  "$emergency_root/${open_digest:0:2}" \
+  "$emergency_root/${pin_digest:0:2}" \
+  "$emergency_root/.refs/$open_digest/Hsiii/sago-cloud" \
+  "$emergency_root/.pins"
+open_file="$emergency_root/${open_digest:0:2}/$open_digest.png"
+pinned_file="$emergency_root/${pin_digest:0:2}/$pin_digest.png"
+printf open >"$open_file"
+printf pinned >"$pinned_file"
+install -m 0644 /dev/null "$emergency_root/.refs/$open_digest/Hsiii/sago-cloud/1"
+install -m 0644 /dev/null "$emergency_root/.pins/$pin_digest"
+
+PATH="$work_dir/bin:$PATH" \
+FAKE_DF_STATE="$work_dir/emergency-df-state" \
+FAKE_DF_INITIAL=95 \
+FAKE_DF_AFTER=80 \
+PR_MEDIA_ROOT="$emergency_root" \
+  "$pruner"
+[ ! -e "$open_file" ]
+[ -e "$pinned_file" ]
+
+printf 'PR media is bounded, validated, PR-aware, pinned, and two-stage pruned\n'

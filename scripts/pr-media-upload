@@ -20,29 +20,32 @@ source_path="$(realpath -- "$1")"
 [ -f "$source_path" ] || usage
 
 media_root="${PR_MEDIA_ROOT:-/srv/pr-media}"
-base_url="${PR_MEDIA_BASE_URL:?Set PR_MEDIA_BASE_URL to the public /media URL}"
+base_url="${PR_MEDIA_BASE_URL:?Set PR_MEDIA_BASE_URL to the public media URL}"
 base_url="${base_url%/}"
 image_limit="${PR_MEDIA_MAX_IMAGE_BYTES:-52428800}"
 video_limit="${PR_MEDIA_MAX_VIDEO_BYTES:-104857600}"
 pruner="${PR_MEDIA_PRUNE_COMMAND:-pr-media-prune}"
+optimizer="${PR_MEDIA_OPTIMIZE_COMMAND:-pr-media-optimize}"
 
 filename="$(basename -- "$source_path")"
 extension="${filename##*.}"
 extension="$(printf '%s' "$extension" | tr '[:upper:]' '[:lower:]')"
+mime_type="$(file --brief --mime-type -- "$source_path")"
 
-case "$extension" in
-  gif | jpg | jpeg | png | webp)
+case "$mime_type:$extension" in
+  image/gif:gif | image/jpeg:jpg | image/jpeg:jpeg | image/png:png | image/webp:webp)
     limit="$image_limit"
     markdown_prefix='![PR preview]('
     markdown_suffix=')'
     ;;
-  mp4 | webm)
+  video/mp4:mp4 | video/webm:webm)
     limit="$video_limit"
     markdown_prefix='[PR demo video]('
     markdown_suffix=')'
     ;;
   *)
-    printf 'Unsupported media extension: %s\n' "$extension" >&2
+    printf 'Unsupported media type or mismatched extension: %s (.%s)\n' \
+      "$mime_type" "$extension" >&2
     exit 1
     ;;
 esac
@@ -54,20 +57,36 @@ if [ "$size" -gt "$limit" ]; then
   exit 1
 fi
 
-digest="$(sha256sum -- "$source_path" | awk '{print $1}')"
+temporary=
+fallback_lock=
+temporary_dir="$(mktemp -d "${TMPDIR:-/tmp}/pr-media-upload.XXXXXX")"
+
+cleanup() {
+  [ -z "$temporary" ] || rm -f -- "$temporary"
+  rm -rf -- "$temporary_dir"
+  [ -z "$fallback_lock" ] || rmdir -- "$fallback_lock" 2>/dev/null || true
+}
+trap cleanup EXIT
+
+optimized_path="$source_path"
+if [ "${PR_MEDIA_OPTIMIZE:-1}" = 1 ]; then
+  optimized_path="$("$optimizer" "$source_path" "$temporary_dir/media")"
+  extension="${optimized_path##*.}"
+fi
+
+size="$(file_size "$optimized_path")"
+if [ "$size" -gt "$limit" ]; then
+  printf 'Optimized media is %s bytes; the limit is %s bytes.\n' \
+    "$size" "$limit" >&2
+  exit 1
+fi
+
+digest="$(sha256sum -- "$optimized_path" | awk '{print $1}')"
 prefix="${digest:0:2}"
 relative_path="$prefix/$digest.$extension"
 destination_dir="$media_root/$prefix"
 destination="$media_root/$relative_path"
 url="$base_url/$relative_path"
-temporary=
-fallback_lock=
-
-cleanup() {
-  [ -z "$temporary" ] || rm -f -- "$temporary"
-  [ -z "$fallback_lock" ] || rmdir -- "$fallback_lock" 2>/dev/null || true
-}
-trap cleanup EXIT
 
 install -d -m 0755 "$media_root"
 if command -v flock >/dev/null 2>&1; then
@@ -88,7 +107,7 @@ fi
 if [ ! -f "$destination" ]; then
   install -d -m 0755 "$destination_dir"
   temporary="$(mktemp "$destination_dir/.upload.XXXXXX")"
-  install -m 0644 -- "$source_path" "$temporary"
+  install -m 0644 -- "$optimized_path" "$temporary"
   mv -- "$temporary" "$destination"
   temporary=
 fi

@@ -48,7 +48,7 @@ to the external `sago_cloud_data` network:
 - `minisago-worker`: one always-on `chat,dev` Codex worker. It mounts one
   repo-scoped GitHub login, broker secret, state volume, and disposable
   workspace.
-- `homepage`: the multi-platform Homepage image, attached only to the frontend
+- `homepage`: the ARM64 Homepage image, attached only to the frontend
   network. Authentication, bookmarks, and private wallpaper storage live in
   Supabase.
 - `obi`: CouchDB for Obsidian LiveSync.
@@ -75,8 +75,8 @@ application attaches separately to `sago_cloud_data` for PostgreSQL and
 
 ## Images
 
-Application repositories build Linux AMD64 and ARM64 images in GitHub Actions
-and publish both `main` and immutable `sha-<commit>` tags:
+Application repositories build Linux ARM64 images on native ARM64 GitHub
+Actions runners and publish both `main` and immutable `sha-<commit>` tags:
 
 ```text
 ghcr.io/hsiii/minisago
@@ -240,9 +240,3 @@ The script removes only named legacy volumes, empty legacy networks, migration
 staging paths, retired secret files, and the compatibility symlink. It never
 prunes Docker volumes. Successful Compose starts prune dangling images; tagged
 images and persistent volumes remain.
-
-## ARM migration
-
-Follow [ARM Migration](ARM-MIGRATION.md) to provision the A1 host, export and
-restore persistent state, rehearse Sago Cloud, cut over DNS and Obsidian, and
-retain the x86 hosts for rollback before retirement.

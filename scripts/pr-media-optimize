@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  printf 'Usage: pr-media-optimize <source> <output-prefix>\n' >&2
+  exit 2
+}
+
+[ "$#" -eq 2 ] || usage
+
+source_path="$(realpath -- "$1")"
+output_prefix="$2"
+[ -f "$source_path" ] || usage
+
+filename="$(basename -- "$source_path")"
+extension="${filename##*.}"
+extension="$(printf '%s' "$extension" | tr '[:upper:]' '[:lower:]')"
+mime_type="$(file --brief --mime-type -- "$source_path")"
+
+case "$mime_type:$extension" in
+  image/jpeg:jpg | image/jpeg:jpeg)
+    output_path="$output_prefix.jpg"
+    install -m 0644 -- "$source_path" "$output_path"
+    exiftool -quiet -overwrite_original -all= "$output_path"
+    jpegoptim --quiet --strip-all --max=92 "$output_path"
+    ;;
+  image/png:png)
+    output_path="$output_prefix.png"
+    install -m 0644 -- "$source_path" "$output_path"
+    exiftool -quiet -overwrite_original -all= "$output_path"
+    optipng -quiet -o2 "$output_path"
+    ;;
+  image/gif:gif)
+    output_path="$output_prefix.gif"
+    install -m 0644 -- "$source_path" "$output_path"
+    exiftool -quiet -overwrite_original -all= "$output_path"
+    ;;
+  image/webp:webp)
+    output_path="$output_prefix.webp"
+    webpmux -strip all "$source_path" -o "$output_path" >/dev/null
+    ;;
+  video/mp4:mp4 | video/webm:webm)
+    output_path="$output_prefix.mp4"
+    ffmpeg -hide_banner -loglevel error -y \
+      -i "$source_path" \
+      -map 0:v:0 -map '0:a?' \
+      -map_metadata -1 \
+      -c:v libx264 -preset medium -crf 20 -pix_fmt yuv420p \
+      -c:a aac -b:a 160k \
+      -movflags +faststart \
+      "$output_path"
+    ;;
+  *)
+    printf 'Unsupported media type or mismatched extension: %s (.%s)\n' \
+      "$mime_type" "$extension" >&2
+    exit 1
+    ;;
+esac
+
+printf '%s\n' "$output_path"

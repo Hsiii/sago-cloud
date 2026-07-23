@@ -22,12 +22,15 @@ inode() {
 
 media_root="$work_dir/media"
 source_file="$work_dir/preview.png"
-printf 'fake png content\n' >"$source_file"
+printf '%s' \
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=' |
+  base64 --decode >"$source_file"
 
 output="$(
   PR_MEDIA_ROOT="$media_root" \
   PR_MEDIA_BASE_URL=https://media.example.test/media \
   PR_MEDIA_PRUNE_COMMAND="$pruner" \
+  PR_MEDIA_OPTIMIZE=0 \
   PR_MEDIA_USED_PERCENT=0 \
     "$uploader" "$source_file"
 )"
@@ -41,6 +44,7 @@ first_inode="$(inode "$media_root/${digest:0:2}/$digest.png")"
 PR_MEDIA_ROOT="$media_root" \
 PR_MEDIA_BASE_URL=https://media.example.test/media \
 PR_MEDIA_PRUNE_COMMAND="$pruner" \
+PR_MEDIA_OPTIMIZE=0 \
 PR_MEDIA_USED_PERCENT=0 \
   "$uploader" "$source_file" >/dev/null
 [ "$(inode "$media_root/${digest:0:2}/$digest.png")" = "$first_inode" ]
@@ -53,8 +57,18 @@ if PR_MEDIA_ROOT="$media_root" \
   exit 1
 fi
 
+cp "$source_file" "$work_dir/mismatched.jpg"
 if PR_MEDIA_ROOT="$media_root" \
   PR_MEDIA_BASE_URL=https://media.example.test/media \
+  PR_MEDIA_OPTIMIZE=0 \
+  "$uploader" "$work_dir/mismatched.jpg" >/dev/null 2>&1; then
+  printf 'uploader accepted a mismatched media extension\n' >&2
+  exit 1
+fi
+
+if PR_MEDIA_ROOT="$media_root" \
+  PR_MEDIA_BASE_URL=https://media.example.test/media \
+  PR_MEDIA_OPTIMIZE=0 \
   PR_MEDIA_MAX_IMAGE_BYTES=1 \
   "$uploader" "$source_file" >/dev/null 2>&1; then
   printf 'uploader accepted an oversized image\n' >&2
@@ -68,7 +82,10 @@ grep -Fq 'losetup -j "$media_image"' "$installer"
 grep -Fq '/usr/local/libexec/sago-cloud-pr-media-prune' "$installer"
 grep -Fq '/srv/pr-media:/srv/pr-media:ro' "$edge_compose"
 grep -Fq '/srv/pr-media:/srv/pr-media' "$worker_compose"
+grep -Fq 'pr-media-optimize:/usr/local/bin/pr-media-optimize:ro' "$worker_compose"
 grep -Fq 'path_regexp supported_media' "$caddyfile"
+grep -Fq '{$MEDIA_DOMAIN}' "$caddyfile"
+grep -Fq 's-maxage=31536000' "$caddyfile"
 grep -Fq 'respond 404' "$caddyfile"
 grep -Fq 'require_pr_media_mount' "$repo_root/scripts/deploy-edge"
 grep -Fq 'require_pr_media_mount' "$repo_root/scripts/deploy-minisago-worker"

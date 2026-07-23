@@ -87,20 +87,31 @@ deploying the edge or worker stacks:
 bun run install:pr-media
 ```
 
-Set `PR_MEDIA_BASE_URL` in `secrets/minisago-worker.env` to the public media
-route, such as `https://bot.example.com/media`. From an agent job, publish a
+Give media its own proxied Cloudflare hostname and tunnel ingress, separate
+from the bot origin and its cookies. Set `MEDIA_DOMAIN` in `secrets/proxy.env`
+and `PR_MEDIA_BASE_URL` in `secrets/minisago-worker.env`, for example
+`https://media.example.com`. From an agent job, publish a
 supported file and paste the returned Markdown into the PR body:
 
 ```bash
 pr-media-upload /workspace/worktrees/example/screenshot.png
 ```
 
-Uploads accept PNG, JPEG, GIF, WebP, MP4, and WebM files. Images are limited to
-50 MiB and videos to 100 MiB by default. Content-addressed names deduplicate
-identical files, and Caddy refuses other extensions. Media does not expire while
-the filesystem is below 90% capacity. At 90%, the oldest files are removed until
-usage falls to 85%, leaving room for new uploads while preserving recent PR
-artifacts.
+Uploads validate file contents and accept PNG, JPEG, GIF, WebP, MP4, and WebM.
+Images are limited to 50 MiB and videos to 100 MiB by default. Location and
+other metadata is stripped. PNG optimization is lossless, JPEG quality is
+capped at a conservative 92, WebP and GIF pixels are preserved, and video is
+normalized to H.264/AAC MP4 at CRF 20 with fast-start metadata. Set
+`PR_MEDIA_OPTIMIZE=0` only for local diagnostics.
+
+Content-addressed names deduplicate identical optimized files. The dedicated
+hostname only serves exact hashed media paths, with byte ranges and validators
+provided by Caddy. One-year browser and shared-cache directives let Cloudflare
+serve repeat downloads at the edge; the supported extensions are cacheable by
+Cloudflare's default CDN policy, so no broad "cache everything" rule is needed.
+Media does not expire while the filesystem is below 90% capacity. At 90%, the
+oldest files are removed until usage falls to 85%, leaving room for new uploads
+while preserving recent PR artifacts.
 
 Homepage is the only public service configured to use the local PostgreSQL
 alias. Its one-shot migration container attaches only to `sago_cloud_data`; the

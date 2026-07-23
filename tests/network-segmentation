@@ -35,8 +35,8 @@ for compose_file in "${frontend_files[@]}"; do
 done
 
 assert_contains services/homepage/compose.yaml 'name: ${EDGE_NETWORK_NAME:-sago_cloud_edge}'
-assert_contains services/homepage/compose.yaml 'name: ${DATA_NETWORK_NAME:-sago_cloud_data}'
-assert_contains services/homepage/compose.yaml 'condition: service_completed_successfully'
+assert_absent services/homepage/compose.yaml 'sago_cloud_data'
+assert_absent services/homepage/compose.yaml 'homepage-migrate'
 
 assert_contains services/postgres/compose.yaml 'name: ${DATA_NETWORK_NAME:-sago_cloud_data}'
 assert_absent services/postgres/compose.yaml 'sago_cloud_edge'
@@ -58,4 +58,4 @@ assert_absent services/minisago-worker/compose.yaml 'minisago-workspace:/workspa
 assert_contains scripts/lib/common.sh 'NETWORK_NAMES=("$EDGE_NETWORK_NAME" "$DATA_NETWORK_NAME")'
 assert_contains scripts/lib/common.sh 'for network_name in "${NETWORK_NAMES[@]}"'
 
-printf 'public services are isolated and Homepage has explicit database access\n'
+printf 'public services are isolated and Homepage uses its external Supabase backend\n'

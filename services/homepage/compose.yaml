@@ -7,22 +7,6 @@ x-logging: &default-logging
     max-file: "3"
 
 services:
-  homepage-migrate:
-    image: ghcr.io/hsiii/homepage:${HOMEPAGE_IMAGE_TAG:-main}
-    restart: "no"
-    cpus: 0.25
-    mem_limit: 256m
-    logging: *default-logging
-    labels:
-      dev.hsichen.sago-cloud.managed: "true"
-    env_file:
-      - /srv/sago-cloud/secrets/homepage.env
-    command:
-      - node
-      - scripts/migrate.ts
-    networks:
-      - data
-
   homepage:
     image: ghcr.io/hsiii/homepage:${HOMEPAGE_IMAGE_TAG:-main}
     restart: unless-stopped
@@ -33,9 +17,6 @@ services:
       dev.hsichen.sago-cloud.managed: "true"
     env_file:
       - /srv/sago-cloud/secrets/homepage.env
-    depends_on:
-      homepage-migrate:
-        condition: service_completed_successfully
     healthcheck:
       test:
         - CMD-SHELL
@@ -48,12 +29,8 @@ services:
       frontend:
         aliases:
           - homepage
-      data:
 
 networks:
   frontend:
     external: true
     name: ${EDGE_NETWORK_NAME:-sago_cloud_edge}
-  data:
-    external: true
-    name: ${DATA_NETWORK_NAME:-sago_cloud_data}

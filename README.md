@@ -49,10 +49,12 @@ to the external `sago_cloud_data` network:
   worker serves Luna chat and read-only Sol jobs; the write worker accepts only
   explicit owner mutations. Each mounts only its own repo-scoped GitHub login,
   profile-bound broker secret, state, and workspace.
-- `homepage`: the multi-platform Homepage image, attached to both networks after
-  its migration job succeeds.
+- `homepage`: the multi-platform Homepage image, attached only to the frontend
+  network. Authentication, bookmarks, and private wallpaper storage live in
+  Supabase.
 - `obi`: CouchDB for Obsidian LiveSync.
-- `postgres`: private PostgreSQL, isolated from the public-service network.
+- `postgres`: private legacy PostgreSQL, isolated from the public-service
+  network and retained only until the Homepage rollback backup is retired.
 
 Caddy discovers services through role-based network aliases. `/bot/*` is the
 neutral bot route, and `/` routes to `bot-core`.

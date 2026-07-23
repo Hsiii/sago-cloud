@@ -3,5 +3,6 @@ set -euo pipefail
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
 
+require_pr_media_mount
 compose_pull minisago-worker
 compose_up minisago-worker

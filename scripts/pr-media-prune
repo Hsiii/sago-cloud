@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+media_root="${PR_MEDIA_ROOT:-/srv/pr-media}"
+high_watermark="${PR_MEDIA_HIGH_WATERMARK:-90}"
+low_watermark="${PR_MEDIA_LOW_WATERMARK:-85}"
+fallback_lock=
+
+cleanup() {
+  [ -z "$fallback_lock" ] || rmdir -- "$fallback_lock" 2>/dev/null || true
+}
+trap cleanup EXIT
+
+if ! [[ "$high_watermark" =~ ^[0-9]+$ ]] ||
+  ! [[ "$low_watermark" =~ ^[0-9]+$ ]] ||
+  [ "$high_watermark" -gt 100 ] ||
+  [ "$low_watermark" -ge "$high_watermark" ]; then
+  printf 'Media watermarks must satisfy 0 <= low < high <= 100.\n' >&2
+  exit 1
+fi
+
+used_percent() {
+  if [ -n "${PR_MEDIA_USED_PERCENT:-}" ]; then
+    printf '%s\n' "$PR_MEDIA_USED_PERCENT"
+  else
+    df -P "$media_root" | awk 'NR == 2 { value=$5; gsub(/%/, "", value); print value }'
+  fi
+}
+
+modified_time() {
+  if stat -c %Y -- "$1" >/dev/null 2>&1; then
+    stat -c %Y -- "$1"
+  else
+    stat -f %m -- "$1"
+  fi
+}
+
+if [ "${PR_MEDIA_LOCK_HELD:-0}" != 1 ]; then
+  if command -v flock >/dev/null 2>&1; then
+    exec 9>"$media_root/.upload.lock"
+    flock 9
+  else
+    fallback_lock="$media_root/.upload.lock.d"
+    if ! mkdir -- "$fallback_lock"; then
+      printf 'Another media upload or prune is in progress.\n' >&2
+      exit 1
+    fi
+  fi
+fi
+
+current_usage="$(used_percent)"
+if ! [[ "$current_usage" =~ ^[0-9]+$ ]]; then
+  printf 'Could not determine media filesystem usage.\n' >&2
+  exit 1
+fi
+
+if [ "$current_usage" -lt "$high_watermark" ]; then
+  exit 0
+fi
+
+while IFS= read -r media_path; do
+  rm -f -- "$media_path"
+  current_usage="$(used_percent)"
+  if [ "$current_usage" -le "$low_watermark" ]; then
+    break
+  fi
+done < <(
+  while IFS= read -r -d '' media_path; do
+    printf '%s\t%s\n' "$(modified_time "$media_path")" "$media_path"
+  done < <(find "$media_root" -mindepth 2 -type f -print0) |
+    sort -n |
+    cut -f 2-
+)
+
+find "$media_root" -mindepth 1 -type d ! -name .upload.lock.d -empty -delete
+
+if [ "$(used_percent)" -gt "$low_watermark" ]; then
+  printf 'Media usage remains above %s%% because no more media can be removed.\n' \
+    "$low_watermark" >&2
+  exit 1
+fi

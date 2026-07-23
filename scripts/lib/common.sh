@@ -77,3 +77,23 @@ compose_up() {
   compose "$stack" up -d --remove-orphans
   "${DOCKER[@]}" image prune --force --filter dangling=true >/dev/null
 }
+
+require_pr_media_mount() {
+  local media_root="${PR_MEDIA_ROOT:-/srv/pr-media}"
+  local mounted_source
+
+  mounted_source="$(findmnt -rn -o SOURCE --mountpoint "$media_root")" || {
+    printf '%s must be a dedicated mount; run scripts/install-pr-media-storage first.\n' \
+      "$media_root" >&2
+    return 1
+  }
+
+  case "$mounted_source" in
+    /dev/loop*) ;;
+    *)
+      printf '%s must be backed by its bounded loop filesystem, not %s.\n' \
+        "$media_root" "$mounted_source" >&2
+      return 1
+      ;;
+  esac
+}

@@ -154,6 +154,10 @@ grep -Fq 'pr-media-pin:/usr/local/bin/pr-media-pin:ro' "$worker_compose"
 grep -Fq 'path_regexp supported_media' "$caddyfile"
 grep -Fq 'http://{$MEDIA_DOMAIN}' "$caddyfile"
 grep -Fq 's-maxage=31536000' "$caddyfile"
+if grep -Fq "default-src 'none'; sandbox" "$caddyfile"; then
+  printf 'media responses block browser playback with CSP\n' >&2
+  exit 1
+fi
 grep -Fq 'respond 404' "$caddyfile"
 grep -Fq 'require_pr_media_mount' "$repo_root/scripts/deploy-edge"
 grep -Fq 'require_pr_media_mount' "$repo_root/scripts/deploy-minisago-worker"

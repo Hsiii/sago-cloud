@@ -59,6 +59,13 @@ each job to its selected checkout. Only owner requests can route to Sol. Remote
 mutation requires an explicit owner request, protected branches reject direct
 and force pushes, and provider credentials are not mounted.
 
+Codex runs job commands through Bubblewrap. The worker keeps Docker's default
+seccomp allowlist, with only Bubblewrap's namespace and mount setup syscalls
+added, and uses a dedicated AppArmor profile derived from Docker's default
+container profile. The deployment installs that profile before recreating the
+worker; it does not disable either host security mechanism or grant the worker
+Linux capabilities. The vendored seccomp baseline is Moby `seccomp/v0.2.1`.
+
 ## Images
 
 Application repositories build Linux ARM64 images on native ARM64 GitHub

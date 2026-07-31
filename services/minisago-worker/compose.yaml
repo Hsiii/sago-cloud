@@ -12,6 +12,9 @@ x-worker: &worker
   init: true
   cpus: 1.25
   mem_limit: 8g
+  security_opt:
+    - apparmor=minisago-worker
+    - seccomp=/srv/sago-cloud/operations/services/minisago-worker/minisago-worker.seccomp.json
   logging: *default-logging
   labels:
     dev.hsichen.sago-cloud.managed: "true"

@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+compose="$repo_root/services/minisago-worker/compose.yaml"
+apparmor="$repo_root/services/minisago-worker/minisago-worker.apparmor"
+seccomp="$repo_root/services/minisago-worker/minisago-worker.seccomp.json"
+deploy="$repo_root/scripts/deploy-minisago-worker"
+
+grep -Fq 'apparmor=minisago-worker' "$compose"
+grep -Fq 'minisago-worker.seccomp.json' "$compose"
+grep -Fq 'userns,' "$apparmor"
+grep -Fq 'mount,' "$apparmor"
+grep -Fq 'pivot_root,' "$apparmor"
+grep -Fq 'deny network alg,' "$apparmor"
+grep -Fq 'apparmor_parser -r' "$deploy"
+
+python3 - "$seccomp" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as source:
+    profile = json.load(source)
+
+required = {"clone", "clone3", "mount", "pivot_root", "setns", "umount", "umount2", "unshare"}
+unconditional = {
+    name
+    for rule in profile["syscalls"]
+    if rule["action"] == "SCMP_ACT_ALLOW" and "includes" not in rule and "excludes" not in rule
+    for name in rule["names"]
+}
+missing = required - unconditional
+if missing:
+    raise SystemExit(f"Bubblewrap syscalls are not unconditionally allowed: {sorted(missing)}")
+PY

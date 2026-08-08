@@ -20,6 +20,7 @@ x-worker: &worker
     dev.hsichen.sago-cloud.managed: "true"
   networks:
     - frontend
+    - sandbox-internal
 
 services:
   worker:
@@ -27,8 +28,12 @@ services:
     env_file:
       - /srv/sago-cloud/secrets/minisago-worker.env
     environment:
+      MINISAGO_SANDBOX_URL: http://sandbox:8080
       MINISAGO_WORKER_ID: oracle
       MINISAGO_WORKER_CAPABILITIES: chat,dev
+    depends_on:
+      sandbox:
+        condition: service_healthy
     volumes:
       - minisago-codex:/home/bun/.codex
       - minisago-github:/home/bun/.config/gh
@@ -41,10 +46,48 @@ services:
       - /srv/sago-cloud/operations/scripts/pr-media-upload:/usr/local/bin/pr-media-upload:ro
       - /srv/sago-cloud/operations/scripts/pr-media-prune:/usr/local/bin/pr-media-prune:ro
 
+  sandbox:
+    image: ghcr.io/hsiii/minisago-worker:${MINISAGO_WORKER_IMAGE_TAG:-main}
+    restart: unless-stopped
+    init: true
+    entrypoint: ["bun"]
+    command: ["src/sandbox-broker.ts"]
+    user: "0:0"
+    environment:
+      HOME: /tmp
+      MINISAGO_SANDBOX_IMAGE: ghcr.io/hsiii/minisago-worker:${MINISAGO_WORKER_IMAGE_TAG:-main}
+      MINISAGO_SANDBOX_JOBS_ROOT: /var/lib/minisago-sandbox
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/minisago-sandbox:/var/lib/minisago-sandbox
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=16m,mode=0700
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bun",
+          "-e",
+          "const r=await fetch('http://127.0.0.1:8080/health');process.exit(r.ok?0:1)",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    networks:
+      - sandbox-internal
+
 networks:
   frontend:
     external: true
     name: ${EDGE_NETWORK_NAME:-sago_cloud_edge}
+  sandbox-internal:
+    internal: true
 
 volumes:
   minisago-codex:

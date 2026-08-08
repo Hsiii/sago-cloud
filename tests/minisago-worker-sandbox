@@ -9,11 +9,18 @@ deploy="$repo_root/scripts/deploy-minisago-worker"
 
 grep -Fq 'apparmor=minisago-worker' "$compose"
 grep -Fq 'minisago-worker.seccomp.json' "$compose"
+grep -Fq 'MINISAGO_SANDBOX_URL: http://sandbox:8080' "$compose"
+grep -Fq 'MINISAGO_SANDBOX_IMAGE: ghcr.io/hsiii/minisago-worker:${MINISAGO_WORKER_IMAGE_TAG:-main}' "$compose"
+grep -Fq '/var/run/docker.sock:/var/run/docker.sock' "$compose"
+grep -Fq '/var/lib/minisago-sandbox:/var/lib/minisago-sandbox' "$compose"
+grep -Fq 'no-new-privileges:true' "$compose"
+grep -Fq 'internal: true' "$compose"
 grep -Fq 'userns,' "$apparmor"
 grep -Fq 'mount,' "$apparmor"
 grep -Fq 'pivot_root,' "$apparmor"
 grep -Fq 'deny network alg,' "$apparmor"
 grep -Fq 'apparmor_parser -r' "$deploy"
+grep -Fq 'install -d -m 0700 /var/lib/minisago-sandbox' "$deploy"
 
 python3 - "$seccomp" <<'PY'
 import json

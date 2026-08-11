@@ -86,6 +86,7 @@ video_limit="${PR_MEDIA_MAX_VIDEO_BYTES:-104857600}"
 pruner="${PR_MEDIA_PRUNE_COMMAND:-pr-media-prune}"
 optimizer="${PR_MEDIA_OPTIMIZE_COMMAND:-pr-media-optimize}"
 body_updater="${PR_MEDIA_BODY_COMMAND:-pr-media-add-to-pr}"
+gif_preview_seconds="${PR_MEDIA_GIF_PREVIEW_SECONDS:-10}"
 
 filename="$(basename -- "$source_path")"
 extension="${filename##*.}"
@@ -94,11 +95,13 @@ mime_type="$(file --brief --mime-type -- "$source_path")"
 
 case "$mime_type:$extension" in
   image/gif:gif | image/jpeg:jpg | image/jpeg:jpeg | image/png:png | image/webp:webp)
+    is_video=0
     limit="$image_limit"
     markdown_prefix='![PR preview]('
     markdown_suffix=')'
     ;;
   video/mp4:mp4 | video/webm:webm)
+    is_video=1
     limit="$video_limit"
     markdown_prefix='[PR demo video]('
     markdown_suffix=')'
@@ -148,6 +151,46 @@ destination_dir="$media_root/$prefix"
 destination="$media_root/$relative_path"
 url="$base_url/$relative_path"
 
+preview_path=
+preview_digest=
+preview_relative_path=
+preview_destination_dir=
+preview_destination=
+preview_url=
+if [ "$is_video" = 1 ] && [ -n "$repo" ]; then
+  duration="$(
+    ffprobe -v error \
+      -show_entries format=duration \
+      -of default=noprint_wrappers=1:nokey=1 \
+      "$optimized_path" 2>/dev/null || true
+  )"
+  if awk -v duration="$duration" -v limit="$gif_preview_seconds" \
+    'BEGIN { exit !(duration > 0 && duration <= limit) }'; then
+    preview_path="$temporary_dir/video-preview.gif"
+    if ! ffmpeg -hide_banner -loglevel error -y \
+      -i "$optimized_path" \
+      -map_metadata -1 \
+      -filter_complex \
+      "[0:v]fps=10,scale='min(800,iw)':-2:flags=lanczos,split[gif][palette_source];[palette_source]palettegen=stats_mode=diff[palette];[gif][palette]paletteuse=dither=bayer:bayer_scale=3:diff_mode=rectangle" \
+      -loop 0 \
+      "$preview_path"; then
+      printf 'Could not generate a GIF preview; publishing the video only.\n' >&2
+      preview_path=
+    elif [ "$(file_size "$preview_path")" -gt "$image_limit" ]; then
+      printf 'GIF preview exceeds the image limit; publishing the video only.\n' >&2
+      rm -f -- "$preview_path"
+      preview_path=
+    else
+      preview_digest="$(sha256sum -- "$preview_path" | awk '{print $1}')"
+      preview_prefix="${preview_digest:0:2}"
+      preview_relative_path="$preview_prefix/$preview_digest.gif"
+      preview_destination_dir="$media_root/$preview_prefix"
+      preview_destination="$media_root/$preview_relative_path"
+      preview_url="$base_url/$preview_relative_path"
+    fi
+  fi
+fi
+
 install -d -m 0755 "$media_root"
 if command -v flock >/dev/null 2>&1; then
   exec 9>"$media_root/.upload.lock"
@@ -172,12 +215,25 @@ if [ ! -f "$destination" ]; then
   temporary=
 fi
 
+if [ -n "$preview_path" ] && [ ! -f "$preview_destination" ]; then
+  install -d -m 0755 "$preview_destination_dir"
+  temporary="$(mktemp "$preview_destination_dir/.upload.XXXXXX")"
+  install -m 0644 -- "$preview_path" "$temporary"
+  mv -- "$temporary" "$preview_destination"
+  temporary=
+fi
+
 if [ -n "$repo" ]; then
   repo_owner="${repo%%/*}"
   repo_name="${repo#*/}"
   reference_dir="$media_root/.refs/$digest/$repo_owner/$repo_name"
   install -d -m 0755 "$reference_dir"
   install -m 0644 /dev/null "$reference_dir/$pr_number"
+  if [ -n "$preview_digest" ]; then
+    preview_reference_dir="$media_root/.refs/$preview_digest/$repo_owner/$repo_name"
+    install -d -m 0755 "$preview_reference_dir"
+    install -m 0644 /dev/null "$preview_reference_dir/$pr_number"
+  fi
 fi
 
 if command -v "$pruner" >/dev/null 2>&1; then
@@ -185,6 +241,9 @@ if command -v "$pruner" >/dev/null 2>&1; then
 fi
 
 markdown="$markdown_prefix$url$markdown_suffix"
+if [ -n "$preview_url" ]; then
+  markdown="![PR video preview]($preview_url)<br>$markdown"
+fi
 if [ "$update_pr_body" = 1 ]; then
   "$body_updater" --repo "$repo" --pr "$pr_number" "$markdown"
 fi

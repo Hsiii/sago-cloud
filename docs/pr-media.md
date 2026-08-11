@@ -45,6 +45,9 @@ pr-media-upload --update-pr-body screenshot.png
 
 Repeated uploads are content-deduplicated. Repeated PR-body updates do not
 duplicate the media entry, and existing PR content remains untouched.
+Videos up to 10 seconds also produce an 800-pixel-wide, 10 fps GIF preview so
+GitHub can show the interaction inline above the full-quality video link.
+Standalone uploads without repository and PR metadata do not generate previews.
 
 ## Remote uploads and tokens
 
@@ -74,7 +77,8 @@ other metadata is removed.
 
 PNG optimization is lossless, JPEG quality is capped at 92, WebP and GIF pixels
 are preserved, and video is normalized to H.264/AAC MP4 at CRF 20 with
-fast-start metadata. Set `PR_MEDIA_OPTIMIZE=0` only for local diagnostics.
+fast-start metadata. Short PR videos additionally use a per-frame palette for
+their GIF preview. Set `PR_MEDIA_OPTIMIZE=0` only for local diagnostics.
 
 Content-addressed names deduplicate identical optimized files. Caddy serves
 only exact hashed media paths with byte ranges and validators. One-year browser

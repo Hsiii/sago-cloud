@@ -62,6 +62,76 @@ PR_MEDIA_USED_PERCENT=0 \
   "$uploader" --repo Hsiii/sago-cloud --pr 24 "$source_file" >/dev/null
 [ -f "$media_root/.refs/$digest/Hsiii/sago-cloud/24" ]
 
+preview_bin="$work_dir/preview-bin"
+preview_log="$work_dir/preview.log"
+install -d "$preview_bin"
+printf '%s\n' \
+  '#!/bin/sh' \
+  'printf "%s\n" "${FAKE_VIDEO_DURATION:-2}"' \
+  >"$preview_bin/ffprobe"
+printf '%s\n' \
+  '#!/bin/sh' \
+  'printf "generated\n" >>"$FAKE_PREVIEW_LOG"' \
+  'for output do :; done' \
+  'printf "%s" "R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" | base64 --decode >"$output"' \
+  >"$preview_bin/ffmpeg"
+chmod +x "$preview_bin/ffprobe" "$preview_bin/ffmpeg"
+
+video_file="$work_dir/preview.mp4"
+printf '\x00\x00\x00\x18ftypisom\x00\x00\x02\x00isomiso2mp41' >"$video_file"
+video_digest="$(sha256sum "$video_file" | awk '{print $1}')"
+preview_root="$work_dir/preview-media"
+gif_file="$work_dir/expected.gif"
+printf '%s' 'R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==' |
+  base64 --decode >"$gif_file"
+gif_digest="$(sha256sum "$gif_file" | awk '{print $1}')"
+video_output="$(
+  PATH="$preview_bin:$PATH" \
+  FAKE_PREVIEW_LOG="$preview_log" \
+  PR_MEDIA_ROOT="$preview_root" \
+  PR_MEDIA_BASE_URL=https://media.example.test/media \
+  PR_MEDIA_PRUNE_COMMAND="$pruner" \
+  PR_MEDIA_OPTIMIZE=0 \
+  PR_MEDIA_USED_PERCENT=0 \
+    "$uploader" --repo Hsiii/sago-cloud --pr 25 "$video_file"
+)"
+expected_video="![PR video preview](https://media.example.test/media/${gif_digest:0:2}/$gif_digest.gif)<br>[PR demo video](https://media.example.test/media/${video_digest:0:2}/$video_digest.mp4)"
+[ "$video_output" = "$expected_video" ]
+[ -f "$preview_root/${gif_digest:0:2}/$gif_digest.gif" ]
+[ -f "$preview_root/.refs/$gif_digest/Hsiii/sago-cloud/25" ]
+
+rm -f -- "$preview_log"
+long_video_root="$work_dir/long-video-media"
+long_video_output="$(
+  PATH="$preview_bin:$PATH" \
+  FAKE_PREVIEW_LOG="$preview_log" \
+  FAKE_VIDEO_DURATION=11 \
+  PR_MEDIA_ROOT="$long_video_root" \
+  PR_MEDIA_BASE_URL=https://media.example.test/media \
+  PR_MEDIA_PRUNE_COMMAND="$pruner" \
+  PR_MEDIA_OPTIMIZE=0 \
+  PR_MEDIA_USED_PERCENT=0 \
+    "$uploader" --repo Hsiii/sago-cloud --pr 26 "$video_file"
+)"
+[ "$long_video_output" = \
+  "[PR demo video](https://media.example.test/media/${video_digest:0:2}/$video_digest.mp4)" ]
+[ ! -e "$preview_log" ]
+
+standalone_root="$work_dir/standalone-media"
+standalone_output="$(
+  PATH="$preview_bin:$PATH" \
+  FAKE_PREVIEW_LOG="$preview_log" \
+  PR_MEDIA_ROOT="$standalone_root" \
+  PR_MEDIA_BASE_URL=https://media.example.test/media \
+  PR_MEDIA_PRUNE_COMMAND="$pruner" \
+  PR_MEDIA_OPTIMIZE=0 \
+  PR_MEDIA_USED_PERCENT=0 \
+    "$uploader" "$video_file"
+)"
+[ "$standalone_output" = \
+  "[PR demo video](https://media.example.test/media/${video_digest:0:2}/$video_digest.mp4)" ]
+[ ! -e "$preview_log" ]
+
 PR_MEDIA_ROOT="$media_root" \
   "$pin_command" "$media_root/${digest:0:2}/$digest.png" >/dev/null
 [ -f "$media_root/.pins/$digest" ]

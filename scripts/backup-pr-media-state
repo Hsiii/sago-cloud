@@ -23,7 +23,7 @@ trap 'rm -f -- "$temporary"' EXIT
   >"$temporary"
 
 "${DOCKER[@]}" compose -f "$compose_file" exec -T api bun -e \
-  'import { Database } from "bun:sqlite"; const bytes = await Bun.stdin.arrayBuffer(); const db = Database.deserialize(new Uint8Array(bytes)); const result = db.query("PRAGMA integrity_check").get(); if (result.integrity_check !== "ok") process.exit(1);' \
+  'import { Database } from "bun:sqlite"; import { unlink } from "node:fs/promises"; const path = `/tmp/media-backup-${crypto.randomUUID()}.sqlite`; try { const bytes = await Bun.stdin.arrayBuffer(); await Bun.write(path, bytes); const db = new Database(path, { readonly: true }); const result = db.query("PRAGMA integrity_check").get(); if (result.integrity_check !== "ok") process.exitCode = 1; } finally { await unlink(path).catch(() => {}); }' \
   <"$temporary"
 
 "${SUDO[@]}" install -o root -g root -m 0600 "$temporary" "$destination"

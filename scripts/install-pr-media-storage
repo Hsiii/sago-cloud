@@ -73,6 +73,7 @@ if [ -z "$loop_source" ] || [ "$mounted_source" != "$loop_source" ]; then
   exit 1
 fi
 
+"${SUDO[@]}" chown -R 10001:10001 "$media_root"
 "${SUDO[@]}" chmod 0755 "$media_root"
 "${SUDO[@]}" install -d -o root -g root -m 0755 /etc/systemd/system/docker.service.d
 "${SUDO[@]}" install -o root -g root -m 0755 \

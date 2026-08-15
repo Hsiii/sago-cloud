@@ -14,6 +14,8 @@ The `pr-media-api` stack pulls the versioned
 - private container networking and Caddy routes;
 - health checks and resource limits;
 - systemd schedules that run the image's prune and verify commands.
+- daily backups of authentication state retained for 30 days outside the media
+  filesystem.
 
 Override `MEDIA_IMAGE` during deployment to select another immutable release.
 The VM never builds media application source.
@@ -45,8 +47,11 @@ headers; API, login, activation, and admin routes are proxied without caching.
 bun run status
 ssh sago-cloud systemctl status sago-cloud-pr-media-prune.timer
 ssh sago-cloud systemctl status sago-cloud-pr-media-verify.timer
+ssh sago-cloud systemctl status sago-cloud-pr-media-backup.timer
 ```
 
 The timers execute `pr-media-prune` and `pr-media-verify` inside the running
 product container. Their implementation and retention policy therefore remain
 versioned with the product image, while Sago Cloud owns when and where they run.
+The backup timer serializes and verifies `.service/media.sqlite` into
+`/srv/sago-cloud/backups/pr-media`.

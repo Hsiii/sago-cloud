@@ -41,5 +41,6 @@ compose_up pr-media-api
 compose pr-media-api exec -T api \
   bun -e 'process.exit((await fetch("http://127.0.0.1:3000/health")).ok?0:1)'
 "${SUDO[@]}" systemctl enable --now \
+  sago-cloud-pr-media-backup.timer \
   sago-cloud-pr-media-prune.timer \
   sago-cloud-pr-media-verify.timer

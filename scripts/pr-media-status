@@ -42,6 +42,13 @@ if [ -d "$media_root" ]; then
     "$media_count" "$reference_count" "$pin_count"
 fi
 
+if systemctl is-active --quiet sago-cloud-pr-media-backup.timer; then
+  printf 'state backup timer: active\n'
+else
+  printf 'state backup timer: FAILED\n'
+  failed=1
+fi
+
 if systemctl is-active --quiet sago-cloud-pr-media-prune.timer; then
   printf 'prune timer: active\n'
 else
@@ -64,6 +71,7 @@ else
 fi
 
 for service in \
+  sago-cloud-pr-media-backup.service \
   sago-cloud-pr-media-prune.service \
   sago-cloud-pr-media-verify.service \
   sago-cloud-public-ingress.service; do

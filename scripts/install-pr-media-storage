@@ -79,9 +79,18 @@ fi
 "${SUDO[@]}" install -o root -g root -m 0755 \
   "$OPERATIONS_ROOT/scripts/run-pr-media-maintenance" \
   /usr/local/libexec/sago-cloud-pr-media-maintenance
+"${SUDO[@]}" install -o root -g root -m 0755 \
+  "$OPERATIONS_ROOT/scripts/backup-pr-media-state" \
+  /usr/local/libexec/sago-cloud-pr-media-backup
 "${SUDO[@]}" install -m 0644 \
   "$OPERATIONS_ROOT/systemd/docker-pr-media-mount.conf" \
   /etc/systemd/system/docker.service.d/sago-cloud-pr-media-mount.conf
+"${SUDO[@]}" install -m 0644 \
+  "$OPERATIONS_ROOT/systemd/sago-cloud-pr-media-backup.service" \
+  /etc/systemd/system/sago-cloud-pr-media-backup.service
+"${SUDO[@]}" install -m 0644 \
+  "$OPERATIONS_ROOT/systemd/sago-cloud-pr-media-backup.timer" \
+  /etc/systemd/system/sago-cloud-pr-media-backup.timer
 "${SUDO[@]}" install -m 0644 \
   "$OPERATIONS_ROOT/systemd/sago-cloud-pr-media-prune.service" \
   /etc/systemd/system/sago-cloud-pr-media-prune.service

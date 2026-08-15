@@ -7,6 +7,7 @@ caddyfile="$repo_root/edge/Caddyfile"
 installer="$repo_root/scripts/install-pr-media-storage"
 deployer="$repo_root/scripts/deploy-pr-media-api"
 maintenance="$repo_root/scripts/run-pr-media-maintenance"
+backup="$repo_root/scripts/backup-pr-media-state"
 worker_compose="$repo_root/services/minisago-worker/compose.yaml"
 
 grep -Fq 'image: ${MEDIA_IMAGE:-ghcr.io/hsiii/sago-media:v0.1.0}' "$compose"
@@ -28,6 +29,10 @@ grep -Fq 'Media public URLs must use HTTPS' "$deployer"
 grep -Fq 'systemctl enable --now' "$deployer"
 grep -Fq 'docker compose' "$maintenance"
 grep -Fq 'exec -T api "$command"' "$maintenance"
+grep -Fq 'db.serialize()' "$backup"
+grep -Fq 'Database.deserialize' "$backup"
+grep -Fq 'sago-cloud-pr-media-backup.timer' "$deployer"
+grep -Fq 'sago-cloud-pr-media-backup.timer' "$installer"
 
 if grep -Eq '(^|[[:space:]])(build|ports):' "$compose"; then
   printf 'Media deployment must pull an image and publish no host ports\n' >&2

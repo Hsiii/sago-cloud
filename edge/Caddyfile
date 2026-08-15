@@ -63,9 +63,9 @@ http://{$MEDIA_DOMAIN} {
 		-Server
 	}
 
-	@upload path /api/upload
+	@media_api path /api/upload /v1/* /activate /auth/* /admin /admin/*
 
-	handle @upload {
+	handle @media_api {
 		request_body {
 			max_size 95000000
 		}

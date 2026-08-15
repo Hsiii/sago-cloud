@@ -12,7 +12,7 @@ Cloudflare Tunnel.
 | `homepage` | Public Homepage application |
 | `obi` | CouchDB for Obsidian LiveSync |
 | `minisago-worker` | Always-on `chat,dev` Codex worker |
-| `pr-media-api` | Authenticated PR screenshot and video uploads |
+| `pr-media-api` | Deployment for the external media service image |
 | `edge` | Caddy routing and media serving |
 | `cloudflared` | Outbound-only public ingress |
 | `postgres` | Offline legacy database retained for rollback |
@@ -48,8 +48,8 @@ ssh sago-cloud
   secrets, scheduled jobs, backups, and host access
 - [Cloudflare ingress](docs/ingress.md) — Tunnel configuration, caching,
   verification, and proxy trust
-- [PR media](docs/pr-media.md) — storage, uploads, tokens, retention, and
-  integrity checks
+- [Media deployment](docs/pr-media.md) — image, storage, routing, secrets, and
+  maintenance schedules
 - [Migration and rollback](docs/migration.md) — legacy namespace migration,
   host rename, and post-rollback cleanup
 

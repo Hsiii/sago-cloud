@@ -15,10 +15,11 @@ else
   SUDO=(sudo -n)
 fi
 
-"${SUDO[@]}" install -d -o root -g root -m 0700 \
-  "$SECRETS_ROOT/pr-media-tokens"
 require_pr_media_mount
 compose_pull pr-media-api
 compose_up pr-media-api
 compose pr-media-api exec -T api \
   bun -e 'process.exit((await fetch("http://127.0.0.1:3000/health")).ok?0:1)'
+"${SUDO[@]}" systemctl enable --now \
+  sago-cloud-pr-media-prune.timer \
+  sago-cloud-pr-media-verify.timer

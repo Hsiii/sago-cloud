@@ -67,11 +67,7 @@ ensure_docker_volumes() {
 }
 
 compose_pull() {
-  if [ "$1" = pr-media-api ]; then
-    compose "$1" build --pull
-  else
-    compose "$1" pull
-  fi
+  compose "$1" pull
 }
 
 compose_up() {

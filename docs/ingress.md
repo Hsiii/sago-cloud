@@ -46,8 +46,11 @@ Cache only immutable Homepage assets such as `/_next/static/*`. Explicitly
 bypass `/api/*`, authenticated HTML, session-bearing responses, and private
 wallpapers. Preserve the origin's `private` and `no-store` headers.
 
-Apply the single free rate-limit rule to the wallpaper-upload endpoint before
-considering broader rules.
+Use the single free rate-limit rule for both the Homepage wallpaper upload and
+`POST media.hsichen.dev/v1/auth/device`. The production rule allows five
+matching requests per IP every ten seconds, blocking bursts for ten seconds.
+Authenticated media uploads retain their separate service quotas and
+concurrency limit.
 
 ## Verification
 

@@ -73,17 +73,24 @@ if [ -z "$loop_source" ] || [ "$mounted_source" != "$loop_source" ]; then
   exit 1
 fi
 
+"${SUDO[@]}" chown -R 10001:10001 "$media_root"
 "${SUDO[@]}" chmod 0755 "$media_root"
 "${SUDO[@]}" install -d -o root -g root -m 0755 /etc/systemd/system/docker.service.d
 "${SUDO[@]}" install -o root -g root -m 0755 \
-  "$OPERATIONS_ROOT/scripts/pr-media-prune" \
-  /usr/local/libexec/sago-cloud-pr-media-prune
+  "$OPERATIONS_ROOT/scripts/run-pr-media-maintenance" \
+  /usr/local/libexec/sago-cloud-pr-media-maintenance
 "${SUDO[@]}" install -o root -g root -m 0755 \
-  "$OPERATIONS_ROOT/scripts/pr-media-verify" \
-  /usr/local/libexec/sago-cloud-pr-media-verify
+  "$OPERATIONS_ROOT/scripts/backup-pr-media-state" \
+  /usr/local/libexec/sago-cloud-pr-media-backup
 "${SUDO[@]}" install -m 0644 \
   "$OPERATIONS_ROOT/systemd/docker-pr-media-mount.conf" \
   /etc/systemd/system/docker.service.d/sago-cloud-pr-media-mount.conf
+"${SUDO[@]}" install -m 0644 \
+  "$OPERATIONS_ROOT/systemd/sago-cloud-pr-media-backup.service" \
+  /etc/systemd/system/sago-cloud-pr-media-backup.service
+"${SUDO[@]}" install -m 0644 \
+  "$OPERATIONS_ROOT/systemd/sago-cloud-pr-media-backup.timer" \
+  /etc/systemd/system/sago-cloud-pr-media-backup.timer
 "${SUDO[@]}" install -m 0644 \
   "$OPERATIONS_ROOT/systemd/sago-cloud-pr-media-prune.service" \
   /etc/systemd/system/sago-cloud-pr-media-prune.service
@@ -97,10 +104,6 @@ fi
   "$OPERATIONS_ROOT/systemd/sago-cloud-pr-media-verify.timer" \
   /etc/systemd/system/sago-cloud-pr-media-verify.timer
 "${SUDO[@]}" systemctl daemon-reload
-"${SUDO[@]}" systemctl enable --now \
-  sago-cloud-pr-media-prune.timer \
-  sago-cloud-pr-media-verify.timer
 
 findmnt "$media_root"
-"${SUDO[@]}" systemctl status sago-cloud-pr-media-prune.timer --no-pager
-"${SUDO[@]}" systemctl status sago-cloud-pr-media-verify.timer --no-pager
+printf 'Media storage installed. Deploy pr-media-api to start maintenance timers.\n'

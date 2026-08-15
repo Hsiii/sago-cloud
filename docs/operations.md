@@ -36,8 +36,8 @@ layout:
 scripts/install-layout
 ```
 
-This creates the runtime symlinks, Docker networks, and external volumes. PR
-media requires its own provisioning step before the edge or worker stacks start:
+This creates the runtime symlinks, Docker networks, and external volumes. Media
+requires its own provisioning step before its API stack starts:
 
 ```bash
 bun run install:pr-media
@@ -58,7 +58,6 @@ bot-core.env
 homepage.env
 minisago-worker.env
 pr-media-api.env
-pr-media-tokens/
 obi.env
 postgres.env
 public-ingress.env
@@ -97,6 +96,9 @@ Compose projects.
 Container logs rotate at 10 MB with three files retained per service.
 PostgreSQL backups retain seven daily and four weekly dumps under
 `/srv/sago-cloud/backups/postgres`.
+
+Media prune and integrity timers run commands inside the published media image.
+Install storage first; a successful media deployment enables the timers.
 
 ## Host access
 

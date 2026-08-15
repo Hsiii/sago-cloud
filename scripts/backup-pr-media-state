@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
+
+if [ "$(id -u)" -eq 0 ]; then
+  SUDO=()
+else
+  SUDO=(sudo -n)
+fi
+
+backup_dir="$BACKUPS_ROOT/pr-media"
+timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+destination="$backup_dir/media-$timestamp.sqlite"
+temporary="$(mktemp "${TMPDIR:-/tmp}/sago-media-state.XXXXXX")"
+trap 'rm -f -- "$temporary"' EXIT
+
+"${SUDO[@]}" install -d -o root -g root -m 0700 "$backup_dir"
+compose pr-media-api exec -T api bun -e \
+  'import { Database } from "bun:sqlite"; const db = new Database("/srv/pr-media/.service/media.sqlite", { readonly: true }); process.stdout.write(Buffer.from(db.serialize()));' \
+  >"$temporary"
+
+compose pr-media-api exec -T api bun -e \
+  'import { Database } from "bun:sqlite"; const bytes = await Bun.stdin.arrayBuffer(); const db = Database.deserialize(new Uint8Array(bytes)); const result = db.query("PRAGMA integrity_check").get(); if (result.integrity_check !== "ok") process.exit(1);' \
+  <"$temporary"
+
+"${SUDO[@]}" install -o root -g root -m 0600 "$temporary" "$destination"
+"${SUDO[@]}" find "$backup_dir" -type f -name 'media-*.sqlite' -mtime +30 -delete
+printf '%s\n' "$destination"

@@ -4,5 +4,4 @@ RequiresMountsFor=/srv/pr-media
 
 [Service]
 Type=oneshot
-Environment=GH_CONFIG_DIR=/home/ubuntu/.config/gh
-ExecStart=/usr/local/libexec/sago-cloud-pr-media-prune
+ExecStart=/usr/local/libexec/sago-cloud-pr-media-maintenance prune

@@ -4,4 +4,4 @@ RequiresMountsFor=/srv/pr-media
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/libexec/sago-cloud-pr-media-verify
+ExecStart=/usr/local/libexec/sago-cloud-pr-media-maintenance verify

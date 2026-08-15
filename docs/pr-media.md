@@ -1,112 +1,57 @@
-# PR Media
+# Media deployment
 
-The PR-media service publishes screenshots and short demo videos without
-allowing them to consume the host root filesystem.
+Sago Cloud deploys the product published by
+[`Hsiii/sago-media`](https://github.com/Hsiii/sago-media). Product behavior, authentication,
+the npm client, and native clients belong to that repository.
 
-## Storage
+## Runtime boundary
 
-Media lives on a dedicated 10 GiB ext4 filesystem mounted at `/srv/pr-media`.
-It is backed by a sparse image under `/srv/sago-cloud/state` and mounted with
-`nodev,nosuid,noexec,discard`. Discard returns expired blocks to the host
-filesystem, so physical use follows live media rather than historical uploads.
+The `pr-media-api` stack pulls the versioned
+`ghcr.io/hsiii/sago-media:v0.1.0` image. Sago Cloud supplies only:
 
-Caddy mounts the filesystem read-only. The MiniSago worker and upload API mount
-it read-write. Docker requires the dedicated mount at boot and will not fall
-back to the underlying host directory.
+- a dedicated, bounded filesystem at `/srv/pr-media`;
+- runtime secrets and GitHub OAuth configuration;
+- private container networking and Caddy routes;
+- health checks and resource limits;
+- systemd schedules that run the image's prune and verify commands.
+- daily backups of authentication state retained for 30 days outside the media
+  filesystem.
 
-Provision the filesystem and its capacity timer before deploying the edge,
-worker, or API:
+Override `MEDIA_IMAGE` during deployment to select another immutable release.
+The VM never builds media application source.
+
+## Provision and deploy
+
+Create the bounded 10 GiB ext4 filesystem once:
 
 ```bash
 bun run install:pr-media
 ```
 
-Give media its own proxied Cloudflare hostname, separate from the bot origin and
-its cookies. Set `MEDIA_DOMAIN` in `secrets/proxy.env` and
-`PR_MEDIA_BASE_URL` in `secrets/minisago-worker.env`.
-
-## Uploading from the worker
-
-Publish a supported file from an agent job:
+Copy `env/pr-media-api.env.example` to
+`/srv/sago-cloud/secrets/pr-media-api.env`, fill in the OAuth and owner values,
+then deploy:
 
 ```bash
-pr-media-upload \
-  --repo Hsiii/example \
-  --pr 123 \
-  /workspace/worktrees/example/screenshot.png
+bun run deploy:pr-media-api
+bun run deploy:edge
 ```
 
-From a branch with an open PR, detect the repository and PR and append the
-returned Markdown to a managed section of the existing body:
+The deployment starts the maintenance timers only after the service health
+check succeeds. Static content is served directly by Caddy with immutable cache
+headers; API, login, activation, and admin routes are proxied without caching.
 
-```bash
-pr-media-upload --update-pr-body screenshot.png
-```
-
-Repeated uploads are content-deduplicated. Repeated PR-body updates do not
-duplicate the media entry, and existing PR content remains untouched.
-Videos up to 10 seconds also produce an 800-pixel-wide, 10 fps GIF preview so
-GitHub can show the interaction inline above the full-quality video link.
-Standalone uploads without repository and PR metadata do not generate previews.
-
-## Remote uploads and tokens
-
-Remote Codex installations use `POST /api/upload` through the public media
-hostname. Each person receives a separately revocable bearer token. Tokens are
-stored on Oracle only as SHA-256 hashes and default to 50 uploads and 500 MB per
-UTC day. Public API videos are capped at 95 MB to stay below Cloudflare's
-100 MB request limit.
-
-Manage tokens on Oracle:
-
-```bash
-scripts/pr-media-token create alice
-scripts/pr-media-token list
-scripts/pr-media-token revoke alice
-```
-
-Send the generated configuration through a secure channel. The
-`human-out-of-loop` PR skill stores it at `~/.config/pr-media/config`; it never
-places the bearer token in a PR, command argument, or repository.
-
-## Validation and optimization
-
-Uploads validate file contents and accept PNG, JPEG, GIF, WebP, MP4, and WebM.
-Images are limited to 50 MiB and videos to 100 MiB by default. Location and
-other metadata is removed.
-
-PNG optimization is lossless, JPEG quality is capped at 92, WebP and GIF pixels
-are preserved, and video is normalized to H.264/AAC MP4 at CRF 20 with
-fast-start metadata. Short PR videos additionally use a per-frame palette for
-their GIF preview. Set `PR_MEDIA_OPTIMIZE=0` only for local diagnostics.
-
-Content-addressed names deduplicate identical optimized files. Caddy serves
-only exact hashed media paths with byte ranges and validators. One-year browser
-and shared-cache directives let Cloudflare cache repeat downloads.
-
-## Retention and integrity
-
-Media does not expire below 90% capacity. At 90%, unreferenced media and media
-whose referenced PRs are all closed are removed oldest-first until capacity
-falls to 85%. Open PR media and media whose GitHub state cannot be checked are
-protected.
-
-At 95%, emergency cleanup removes the oldest unpinned media, including open-PR
-media, until capacity falls to 80%. Pin long-lived media to protect it from both
-cleanup stages:
-
-```bash
-pr-media-pin https://media.example.com/ab/<hash>.png
-pr-media-pin --remove https://media.example.com/ab/<hash>.png
-```
-
-The cleanup timer checks PR state through the Oracle user's authenticated GitHub
-CLI configuration and emits an event for every eviction. A weekly integrity
-pass recomputes every object's SHA-256 digest and fails in the systemd journal
-when contents no longer match the content-addressed filename.
-
-Check current capacity, object counts, and timer status with:
+## Operations
 
 ```bash
 bun run status
+ssh sago-cloud systemctl status sago-cloud-pr-media-prune.timer
+ssh sago-cloud systemctl status sago-cloud-pr-media-verify.timer
+ssh sago-cloud systemctl status sago-cloud-pr-media-backup.timer
 ```
+
+The timers execute `pr-media-prune` and `pr-media-verify` inside the running
+product container. Their implementation and retention policy therefore remain
+versioned with the product image, while Sago Cloud owns when and where they run.
+The backup timer serializes and verifies `.service/media.sqlite` into
+`/srv/sago-cloud/backups/pr-media`.

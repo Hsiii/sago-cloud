@@ -63,9 +63,9 @@ http://{$MEDIA_DOMAIN} {
 		-Server
 	}
 
-	@upload path /api/upload
+	@media_api path /api/upload /v1/* /activate /auth/* /admin /admin/*
 
-	handle @upload {
+	handle @media_api {
 		request_body {
 			max_size 95000000
 		}
@@ -77,7 +77,7 @@ http://{$MEDIA_DOMAIN} {
 		reverse_proxy pr-media-api:3000
 	}
 
-	@supported_media path_regexp supported_media ^/[0-9a-f]{2}/[0-9a-f]{64}\.(?:gif|jpg|mp4|png|webp)$
+	@supported_media path_regexp supported_media ^/[0-9a-f]{2}/[0-9a-f]{64}\.(?:gif|jpeg|jpg|mp4|png|webm|webp)$
 
 	handle @supported_media {
 		header {

@@ -32,8 +32,8 @@ Each workload is an independent Docker Compose project:
   separately so a configuration merge cannot cut over live traffic.
 - `bot-core` runs the MiniSago Discord bot.
 - `minisago-worker` runs one always-on `chat,dev` Codex worker.
-- `pr-media-api` accepts token-authenticated uploads from remote Codex
-  installations. It has no published host port.
+- `pr-media-api` deploys the versioned `ghcr.io/hsiii/sago-media` product image. It
+  has no published host port and no application source in this repository.
 - `homepage` runs the ARM64 Homepage image. Authentication, bookmarks, and
   private wallpaper storage live in Supabase.
 - `obi` runs CouchDB for Obsidian LiveSync.
@@ -51,8 +51,8 @@ alias instead of public-IP hairpin routing.
 ## Worker boundaries
 
 The worker mounts one repo-scoped GitHub login, a broker secret, persistent
-Codex and worker state, a disposable workspace, and the bounded PR-media
-filesystem.
+Codex and worker state, and a disposable workspace. Media uploads go through
+the authenticated public API; the worker does not mount media storage.
 
 The broker binds the worker secret to `oracle`/`chat,dev`, while Codex restricts
 each job to its selected checkout. Only owner requests can route to Sol. Remote
@@ -75,6 +75,7 @@ Actions runners and publish `main` and immutable `sha-<commit>` tags:
 ghcr.io/hsiii/minisago
 ghcr.io/hsiii/minisago-worker
 ghcr.io/hsiii/homepage
+ghcr.io/hsiii/sago-media
 ```
 
 The VM only pulls images and starts containers; it does not clone or build

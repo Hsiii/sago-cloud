@@ -9,16 +9,38 @@ if [ ! -s "$SECRETS_ROOT/pr-media-api.env" ]; then
   exit 1
 fi
 
+for required_key in \
+  PR_MEDIA_BASE_URL \
+  MEDIA_PUBLIC_URL \
+  MEDIA_GITHUB_CLIENT_ID \
+  MEDIA_GITHUB_CLIENT_SECRET \
+  MEDIA_OWNER_GITHUB_ID \
+  GH_TOKEN; do
+  if ! grep -Eq "^${required_key}=.+$" "$SECRETS_ROOT/pr-media-api.env"; then
+    printf 'Missing required %s in %s/pr-media-api.env.\n' \
+      "$required_key" "$SECRETS_ROOT" >&2
+    exit 1
+  fi
+done
+
+if ! grep -Eq '^PR_MEDIA_BASE_URL=https://[^[:space:]]+$' "$SECRETS_ROOT/pr-media-api.env" || \
+  ! grep -Eq '^MEDIA_PUBLIC_URL=https://[^[:space:]]+$' "$SECRETS_ROOT/pr-media-api.env"; then
+  printf 'Media public URLs must use HTTPS.\n' >&2
+  exit 1
+fi
+
 if [ "$(id -u)" -eq 0 ]; then
   SUDO=()
 else
   SUDO=(sudo -n)
 fi
 
-"${SUDO[@]}" install -d -o root -g root -m 0700 \
-  "$SECRETS_ROOT/pr-media-tokens"
 require_pr_media_mount
 compose_pull pr-media-api
 compose_up pr-media-api
 compose pr-media-api exec -T api \
   bun -e 'process.exit((await fetch("http://127.0.0.1:3000/health")).ok?0:1)'
+"${SUDO[@]}" systemctl enable --now \
+  sago-cloud-pr-media-backup.timer \
+  sago-cloud-pr-media-prune.timer \
+  sago-cloud-pr-media-verify.timer

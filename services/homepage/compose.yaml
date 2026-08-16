@@ -8,7 +8,7 @@ x-logging: &default-logging
 
 services:
   homepage:
-    image: ghcr.io/orangesago/homepage:${HOMEPAGE_IMAGE_TAG:-main}
+    image: ghcr.io/sago-cream/homepage:${HOMEPAGE_IMAGE_TAG:-main}
     restart: unless-stopped
     cpus: 0.5
     mem_limit: 512m

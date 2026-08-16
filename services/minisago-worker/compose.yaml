@@ -7,7 +7,7 @@ x-logging: &default-logging
     max-file: "3"
 
 x-worker: &worker
-  image: ghcr.io/orangesago/minisago-worker:${MINISAGO_WORKER_IMAGE_TAG:-main}
+  image: ghcr.io/sago-cream/minisago-worker:${MINISAGO_WORKER_IMAGE_TAG:-main}
   restart: unless-stopped
   init: true
   cpus: 1.25
@@ -41,7 +41,7 @@ services:
       - minisago-workspace:/workspace
 
   sandbox:
-    image: ghcr.io/orangesago/minisago-worker:${MINISAGO_WORKER_IMAGE_TAG:-main}
+    image: ghcr.io/sago-cream/minisago-worker:${MINISAGO_WORKER_IMAGE_TAG:-main}
     restart: unless-stopped
     init: true
     entrypoint: ["bun"]
@@ -49,7 +49,7 @@ services:
     user: "0:0"
     environment:
       HOME: /tmp
-      MINISAGO_SANDBOX_IMAGE: ghcr.io/orangesago/minisago-worker:${MINISAGO_WORKER_IMAGE_TAG:-main}
+      MINISAGO_SANDBOX_IMAGE: ghcr.io/sago-cream/minisago-worker:${MINISAGO_WORKER_IMAGE_TAG:-main}
       MINISAGO_SANDBOX_JOBS_ROOT: /var/lib/minisago-sandbox
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock

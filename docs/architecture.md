@@ -32,7 +32,7 @@ Each workload is an independent Docker Compose project:
   separately so a configuration merge cannot cut over live traffic.
 - `bot-core` runs the MiniSago Discord bot.
 - `minisago-worker` runs one always-on `chat,dev` Codex worker.
-- `pr-media-api` deploys the versioned `ghcr.io/orangesago/sago-media` product image. It
+- `pr-media-api` deploys the versioned `ghcr.io/sago-cream/sago-media` product image. It
   has no published host port and no application source in this repository.
 - `homepage` runs the ARM64 Homepage image. Authentication, bookmarks, and
   private wallpaper storage live in Supabase.
@@ -72,10 +72,10 @@ Application repositories build Linux ARM64 images on native ARM64 GitHub
 Actions runners and publish `main` and immutable `sha-<commit>` tags:
 
 ```text
-ghcr.io/orangesago/minisago
-ghcr.io/orangesago/minisago-worker
-ghcr.io/orangesago/homepage
-ghcr.io/orangesago/sago-media
+ghcr.io/sago-cream/minisago
+ghcr.io/sago-cream/minisago-worker
+ghcr.io/sago-cream/homepage
+ghcr.io/sago-cream/sago-media
 ```
 
 The VM only pulls images and starts containers; it does not clone or build

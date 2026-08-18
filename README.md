@@ -12,7 +12,7 @@ Cloudflare Tunnel.
 | `homepage` | Public Homepage application |
 | `obi` | CouchDB for Obsidian LiveSync |
 | `minisago-worker` | Always-on `chat,dev` Codex worker |
-| `pr-media-api` | Deployment for the external media service image |
+| `pr-media-api` | Deployment for the Sago Media backend image |
 | `edge` | Caddy routing and media serving |
 | `cloudflared` | Outbound-only public ingress |
 | `postgres` | Offline legacy database retained for rollback |

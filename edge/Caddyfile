@@ -63,7 +63,7 @@ http://{$MEDIA_DOMAIN} {
 		-Server
 	}
 
-	@media_api path /api/upload /v1/* /activate /auth/* /admin /admin/*
+	@media_api path /v1/* /activate /auth/* /admin /admin/*
 
 	handle @media_api {
 		request_body {

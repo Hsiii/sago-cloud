@@ -2,12 +2,12 @@
 
 Sago Cloud deploys the product published by
 [`sago-cream/sago-media`](https://github.com/sago-cream/sago-media). Product behavior, authentication,
-the npm client, and native clients belong to that repository.
+and the Sago Drop client belong to their application repositories.
 
 ## Runtime boundary
 
 The `pr-media-api` stack pulls the versioned
-`ghcr.io/sago-cream/sago-media:v0.2.3` image. Sago Cloud supplies only:
+`ghcr.io/sago-cream/sago-media:v1.0.0` image. Sago Cloud supplies only:
 
 - a dedicated, bounded filesystem at `/srv/pr-media`;
 - runtime secrets and GitHub OAuth configuration;

@@ -27,7 +27,7 @@ network, and external volumes.
 
 Each workload is an independent Docker Compose project:
 
-- `edge` provides Caddy routing and serves PR media.
+- `edge` provides Caddy routing and serves Sago Media files.
 - `cloudflared` provides outbound-only Cloudflare Tunnel ingress. It deploys
   separately so a configuration merge cannot cut over live traffic.
 - `bot-core` runs the MiniSago Discord bot.

@@ -19,6 +19,7 @@ services:
       - /srv/sago-cloud/secrets/bot-core.env
     environment:
       GAMER_FORUM_STATE_FILE: /app/state/gamer-forum-state.json
+      MINISAGO_REMINDER_STATE_FILE: /app/state/reminders.json
       X_POST_STATE_FILE: /app/state/x-post-state.json
     healthcheck:
       test:
